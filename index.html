@@ -1,652 +1,566 @@
+<!DOCTYPE html>
 <html>
-<head>
-  <title>DropScore Snake Draft</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background-color: #0a192f;
-      color: #e2e8f0;
-      padding: 2rem;
-      max-width: 1200px;
-      margin: 0 auto;
-      line-height: 1.6;
-    }
-    h1 {
-      color: #60a5fa;
-      font-size: 2.5rem;
-      margin-bottom: 2rem;
-      text-align: center;
-      text-shadow: 0 0 10px rgba(96, 165, 250, 0.3);
-    }
-    h2 {
-      color: #93c5fd;
-      margin-bottom: 1.5rem;
-    }
-    ul {
-      list-style: none;
-      padding: 0;
-      display: grid;
-      gap: 1rem;
-    }
-    li {
-      background-color: #1e293b;
-      margin-bottom: 10px;
-      padding: 1rem;
-      border-radius: 12px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-    li:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
-    }
-    button {
-      padding: 0.75rem 1.5rem;
-      background: #3b82f6;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: background-color 0.2s;
-      margin: 0.5rem 0;
-      margin-left: 1.5rem;
-    }
-    button:hover {
-      background: #2563eb;
-    }
-    .eliminated {
-      opacity: 0.5;
-      text-decoration: line-through;
-    }
-    .draft-board {
-      margin-top: 2rem;
-      background: #1e293b;
-      padding: 1.5rem;
-      border-radius: 12px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-    .hidden {
-      display: none;
-    }
-    input[type="text"], input[type="number"] {
-      margin-bottom: 1rem;
-      padding: 0.75rem;
-      width: 100%;
-      max-width: 300px;
-      border: 2px solid #334155;
-      border-radius: 8px;
-      background: #1e293b;
-      color: #e2e8f0;
-      font-size: 1rem;
-    }
-    input:focus {
-      outline: none;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
-    }
-    #currentTeam {
-      font-weight: bold;
-      color: #60a5fa;
-    }
-    #teamNameInputs {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
-    }
-    #orderList {
-      background: #1e293b;
-      padding: 1.5rem;
-      border-radius: 12px;
-      margin-bottom: 1.5rem;
-    }
-    p {
-      margin-bottom: 1rem;
-    }
-    .leaderboard {
-      background: #1e293b;
-      padding: 1.5rem;
-      border-radius: 12px;
-      margin: 1.5rem 0;
-    }
-    .leaderboard h3 {
-      color: #60a5fa;
-      margin-bottom: 1rem;
-    }
-    .score {
-      font-size: 1.2rem;
-      font-weight: bold;
-      color: #60a5fa;
-    }
-    .draft-entry {
-      background: #1e293b;
-      padding: 1.5rem;
-      border-radius: 12px;
-      margin-bottom: 1.5rem;
-    }
-    .draft-entry h3 {
-      color: #60a5fa;
-      margin-bottom: 1rem;
-    }
-    .delete-btn {
-      background: #dc2626;
-      margin-top: 1rem;
-    }
-    .delete-btn:hover {
-      background: #b91c1c;
-    }
-    
-    .complete-draft-btn {
-      position: fixed;
-      bottom: 2rem;
-      right: 2rem;
-      background: #dc2626;
-      margin: 0;
-      z-index: 100;
-    }
-    
-    .complete-draft-btn:hover {
-      background: #b91c1c;
-    }
-    .creator {
-      color: #9ca3af;
-      font-size: 0.9rem;
-      margin-bottom: 1rem;
-    }
-  </style>
-</head>
-<body>
-  <div id="loginScreen" class="login-screen">
-    <h2>Welcome to NBA Draft Room</h2>
-    <p>Please sign in with Google to continue</p>
-    <a href="/login" class="login-button" style="text-decoration: none; display: inline-block; padding: 10px 20px; background: #4285f4; color: white; border-radius: 5px;">
-      Sign in with Google
-    </a>
-  </div>
-
-  <div id="mainContent" class="hidden">
-    <h1>DropScore: NBA Snake Draft</h1>
-
-    <div id="previousDraftsScreen">
-      <h2>Previous Drafts</h2>
-      <div id="previousDrafts" class="draft-board"></div>
-      <button onclick="startNewDraft()">Start New Draft</button>
-    </div>
-
-    <div id="setupScreen" class="hidden">
-      <p>How many teams are drafting? (Min: 2, Max: 12)</p>
-      <input type="number" id="teamCount" min="2" max="12" value="2">
-      <button onclick="enterTeamNames()">Next</button>
-    </div>
-
-    <div id="teamNameScreen" class="hidden">
-      <p>Waiting Room: Enter team names below. Once all are ready, start the draft.</p>
-      <div id="teamNameInputs"></div>
-      <button onclick="startDraftSetup()">Randomize Order & Continue</button>
-    </div>
-
-    <div id="orderScreen" class="hidden">
-      <h2>Draft Order</h2>
-      <ol id="orderList"></ol>
-      <button onclick="beginDraft()">Begin Draft</button>
-    </div>
-
-    <div id="draftScreen" class="hidden">
-      <p><strong>Current Team:</strong> <span id="currentTeam"></span></p>
-      <div style="margin-bottom: 1rem;">
-        <input type="text" id="searchInput" placeholder="Search for player or team..." style="width: 300px;">
-      </div>
-      <ul id="players"></ul>
-      <button onclick="completeDraft()" class="complete-draft-btn">Complete Draft</button>
-      <div class="draft-board">
-          <h2>Draft Board</h2>
-          <ul id="draftBoard"></ul>
-        </div>
-      </div>
-    </div>
-
-    <div id="completeScreen" class="hidden">
-      <h2>Draft Complete</h2>
-      <p>Here are the final rosters:</p>
-      <ul id="finalResults"></ul>
-      <button onclick="showLiveResults()">Go to Live Results</button>
-      <button onclick="restartDraft()">Start New Draft</button>
-    </div>
-
-    <div id="liveResultsScreen" class="hidden">
-      <h2>Live Results</h2>
-      <div class="leaderboard">
-        <h3>Leaderboard</h3>
-        <ul id="leaderboard"></ul>
-      </div>
-      <button onclick="document.getElementById('completeScreen').classList.remove('hidden'); document.getElementById('liveResultsScreen').classList.add('hidden');">Back to Draft Results</button>
-    </div>
-
-    <div id="draftLeaderboardScreen" class="hidden">
-      <h2>Draft Leaderboard</h2>
-      <div class="leaderboard">
-        <div id="draftLeaderboardContent"></div>
-      </div>
-      <button onclick="hideDraftLeaderboard()">Back to Previous Drafts</button>
-    </div>
-  </div>
-
-  <script>
-    const API_URL = "https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/sheet1";
-
-    let teams = [], draftPicks = {}, totalRounds = 3;
-    let currentRound = 1, currentIndex = 0, reverse = false, drafted = [];
-
-    function enterTeamNames() {
-      const count = parseInt(document.getElementById("teamCount").value);
-      if (count < 2 || count > 12) return alert("Choose between 2 and 12 teams.");
-      const container = document.getElementById("teamNameInputs");
-      container.innerHTML = "";
-      for (let i = 0; i < count; i++) {
-        const input = document.createElement("input");
-        input.type = "text";
-        input.placeholder = `Team ${i + 1} Name`;
-        input.id = `teamInput${i}`;
-        container.appendChild(input);
-        container.appendChild(document.createElement("br"));
+  <head>
+    <title>DropScore Player Viewer</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        background-color: #0e1a2b;
+        color: white;
+        padding: 2rem;
       }
-      document.getElementById("setupScreen").classList.add("hidden");
-      document.getElementById("teamNameScreen").classList.remove("hidden");
-    }
-
-    function startDraftSetup() {
-      const inputs = document.querySelectorAll('#teamNameInputs input');
-      teams = Array.from(inputs).map(input => input.value.trim() || input.placeholder);
-      for (let i = teams.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [teams[i], teams[j]] = [teams[j], teams[i]];
+      h1 {
+        color: #f44336;
       }
-      draftPicks = {};
-      teams.forEach(team => draftPicks[team] = []);
+      ul {
+        list-style: none;
+        padding: 0;
+      }
+      li {
+        background-color: #1f2f47;
+        margin-bottom: 10px;
+        padding: 10px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .player-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .player-info img {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+      #previousDrafts ul {
+        padding-left: 1rem;
+      }
+      ol.leaderboard li {
+        background-color: #26394d;
+        font-size: 1.1rem;
+        padding: 8px 12px;
+        border-left: 5px solid gold;
+      }
+      ol.leaderboard li:nth-child(1)::before {
+        content: "🥇 ";
+      }
+      ol.leaderboard li:nth-child(2)::before {
+        content: "🥈 ";
+      }
+      ol.leaderboard li:nth-child(3)::before {
+        content: "🥉 ";
+      }
+    </style>
+  </head>
+  <body>
+    <div id="welcomeScreen">
+      <h1>🏀 Welcome to DropScore</h1>
+      <p>
+        Draft NBA playoff players in a snake-style fantasy draft. Track points
+        and see who wins!
+      </p>
+      <button onclick="startApp()">Start New Draft</button>
+      <button onclick="viewPreviousDraft()">View Previous Drafts</button>
+    </div>
 
-      const orderList = document.getElementById("orderList");
-      orderList.innerHTML = "";
-      teams.forEach(team => {
-        const li = document.createElement("li");
-        li.textContent = team;
-        orderList.appendChild(li);
-      });
+    <div id="createLeague" style="display: none; margin-bottom: 2rem">
+      <h2>Create a League</h2>
+      <ol>
+        <li><strong>Step 1:</strong> Name your league</li>
+        <li><strong>Step 2:</strong> Choose how many teams are drafting</li>
+        <li><strong>Step 3:</strong> Begin your draft and track points!</li>
+      </ol>
+      <label for="leagueName">League Name:</label>
+      <input
+        type="text"
+        id="leagueName"
+        placeholder="Enter your league name"
+      /><br /><br />
+      <label for="totalRounds">Total Draft Rounds:</label>
+      <input type="number" id="totalRounds" min="1" max="20" value="5" />
+      <br /><br />
+      <button onclick="proceedToTeamSetup()">Next</button>
+    </div>
 
-      document.getElementById("teamNameScreen").classList.add("hidden");
-      document.getElementById("orderScreen").classList.remove("hidden");
-    }
+    <div id="mainApp" style="display: none">
+      <h1>NBA Playoff Players</h1>
+      <div id="teamSetup">
+        <label for="teamCount">How many teams are drafting? (2-12)</label>
+        <input type="number" id="teamCount" min="2" max="12" value="2" />
+        <button onclick="setupTeams()">Next</button>
+      </div>
+      <div id="teamNameInputs" style="margin-top: 1rem"></div>
+      <div id="draftControls" style="display: none; margin-top: 2rem">
+        <h2>
+          Round <span id="currentRound">1</span> - Current Turn:
+          <span id="currentTeam"></span>
+        </h2>
+        <input
+          type="text"
+          id="playerSearch"
+          placeholder="Search players..."
+          oninput="renderPlayers(allPlayers)"
+          style="margin-bottom: 1rem; padding: 0.5rem; width: 100%"
+        />
+        <ul id="playerList"></ul>
+        <h3>Draft Board</h3>
+        <ul id="draftBoard"></ul>
+      </div>
+    </div>
 
-    function beginDraft() {
-      document.getElementById("orderScreen").classList.add("hidden");
-      document.getElementById("draftScreen").classList.remove("hidden");
-      document.getElementById("currentTeam").textContent = teams[currentIndex];
+    <div id="previousDrafts" style="display: none"></div>
 
-      fetch(API_URL)
-        .then(res => res.json())
-        .then(data => {
-          renderPlayers(data.sheet1);
+    <audio
+      id="winnerSound"
+      src="https://www.soundjay.com/human/applause-8.mp3"
+      preload="auto"
+    ></audio>
+
+    <script>
+      const API_URL =
+        "https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/sheet1";
+      let teams = [],
+        draftPicks = {},
+        currentIndex = 0,
+        reverse = false,
+        round = 1,
+        allPlayers = [];
+      let totalRounds = 5;
+      let draftedPlayerNames = new Set();
+
+      function startApp() {
+        document.getElementById("welcomeScreen").style.display = "none";
+        document.getElementById("createLeague").style.display = "block";
+      }
+
+      function proceedToTeamSetup() {
+        const leagueName = document.getElementById("leagueName").value.trim();
+        if (!leagueName) return alert("Please enter a league name.");
+        totalRounds = parseInt(document.getElementById("totalRounds").value);
+        document.getElementById("createLeague").style.display = "none";
+        document.getElementById("mainApp").style.display = "block";
+      }
+
+      function setupTeams() {
+        document.getElementById("teamSetup").style.display = "none";
+        const count = parseInt(document.getElementById("teamCount").value);
+        if (count < 2 || count > 12)
+          return alert("Choose between 2 and 12 teams.");
+        const container = document.getElementById("teamNameInputs");
+        container.innerHTML = "<h2>Enter Team Names</h2>";
+        for (let i = 0; i < count; i++) {
+          container.innerHTML += `<input type='text' placeholder='Team ${
+            i + 1
+          }' id='team${i}' /><br/>`;
+        }
+        container.innerHTML += `<br><br><strong>Randomized Draft Order:</strong><ul id='draftOrderList'></ul><button onclick='startDraft()'>Start Draft</button>`;
+      }
+
+      function startDraft() {
+        const inputElements = document.querySelectorAll(
+          "#teamNameInputs input"
+        );
+        teams = Array.from(inputElements).map(
+          (input) => input.value.trim() || input.placeholder
+        );
+        draftPicks = {};
+        teams.forEach((team) => (draftPicks[team] = []));
+        teams.sort(() => Math.random() - 0.5);
+        draftedPlayerNames.clear();
+
+        const orderList = document.getElementById("draftOrderList");
+        orderList.innerHTML = "";
+        teams.forEach((team, index) => {
+          const li = document.createElement("li");
+          li.textContent = `#${index + 1}: ${team}`;
+          orderList.appendChild(li);
         });
-    }
 
-    function getNextTeamIndex() {
-      if (!reverse) {
-        if (currentIndex + 1 < teams.length) return currentIndex + 1;
-        reverse = true; currentRound++; return currentIndex;
-      } else {
-        if (currentIndex - 1 >= 0) return currentIndex - 1;
-        reverse = false; currentRound++; return currentIndex;
+        document.getElementById("teamNameInputs").style.display = "none";
+        document.getElementById("draftControls").style.display = "block";
+
+        const endBtn = document.createElement("button");
+        endBtn.id = "endDraftBtn";
+        endBtn.textContent = "End Draft";
+        Object.assign(endBtn.style, {
+          position: "fixed",
+          bottom: "20px",
+          right: "20px",
+          backgroundColor: "red",
+          color: "white",
+          border: "none",
+          padding: "10px 16px",
+          borderRadius: "6px",
+          fontSize: "16px",
+          cursor: "pointer",
+        });
+        endBtn.onclick = endDraft;
+        document.body.appendChild(endBtn);
+
+        const undoBtn = document.createElement("button");
+        undoBtn.textContent = "Undo Last Pick";
+        undoBtn.style.marginLeft = "1rem";
+        undoBtn.onclick = undoLastPick;
+        document.getElementById("draftControls").appendChild(undoBtn);
+
+        document.getElementById("currentTeam").textContent =
+          teams[currentIndex];
+        fetchPlayers();
       }
-    }
 
-    function renderDraftBoard() {
-      const board = document.getElementById("draftBoard");
-      board.innerHTML = "";
-      for (let team in draftPicks) {
-        const li = document.createElement("li");
-        li.innerHTML = `<strong>${team}</strong>: ${draftPicks[team].join(", ")}`;
-        board.appendChild(li);
+      function fetchPlayers() {
+        fetch(API_URL)
+          .then((res) => res.json())
+          .then((data) => {
+            allPlayers = data.sheet1;
+            renderPlayers(allPlayers);
+          });
       }
-    }
 
-    function renderPlayers(players) {
-  const list = document.getElementById("players");
-  list.innerHTML = "";
-  const searchTerm = document.getElementById("searchInput")?.value.toLowerCase() || "";
-  const remaining = players.filter(p => !p.eliminated && !drafted.includes(p.playerName) && 
-    (p.playerName.toLowerCase().includes(searchTerm) || p.team.toLowerCase().includes(searchTerm)));
-  
-  // Only show final results if all teams have completed their picks
-  if (currentRound > totalRounds) {
-    showFinalResults();
-    return;
-  }
-  
-  // If no players match search, just show empty list
-  if (remaining.length === 0) {
-    return;
-  }
-
-  // Group players by team
-  const teamGroups = {};
-  remaining.forEach(player => {
-    if (!teamGroups[player.team]) {
-      teamGroups[player.team] = [];
-    }
-    teamGroups[player.team].push(player);
-  });
-
-  // Sort teams alphabetically and create sections
-  Object.keys(teamGroups).sort().forEach(team => {
-    const teamColors = {
-      'Atlanta Hawks': '#E03A3E',
-      'Boston Celtics': '#007A33',
-      'Brooklyn Nets': '#000000',
-      'Charlotte Hornets': '#1D1160',
-      'Chicago Bulls': '#CE1141',
-      'Cleveland Cavaliers': '#860038',
-      'Dallas Mavericks': '#00538C',
-      'Denver Nuggets': '#0E2240',
-      'Detroit Pistons': '#C8102E',
-      'Golden State Warriors': '#1D428A',
-      'Houston Rockets': '#CE1141',
-      'Indiana Pacers': '#002D62',
-      'LA Clippers': '#C8102E',
-      'Los Angeles Lakers': '#552583',
-      'Memphis Grizzlies': '#5D76A9',
-      'Miami Heat': '#98002E',
-      'Milwaukee Bucks': '#00471B',
-      'Minnesota Timberwolves': '#0C2340',
-      'New Orleans Pelicans': '#0C2340',
-      'New York Knicks': '#006BB6',
-      'Oklahoma City Thunder': '#007AC1',
-      'Orlando Magic': '#0077C0',
-      'Philadelphia 76ers': '#006BB6',
-      'Phoenix Suns': '#1D1160',
-      'Portland Trail Blazers': '#E03A3E',
-      'Sacramento Kings': '#5A2D81',
-      'San Antonio Spurs': '#C4CED4',
-      'Toronto Raptors': '#CE1141',
-      'Utah Jazz': '#002B5C',
-      'Washington Wizards': '#002B5C'
-    };
-    const teamSection = document.createElement("div");
-    const teamColor = teamColors[team] || '#60a5fa';
-    teamSection.innerHTML = `<h3 style="color: ${teamColor}; margin: 1rem 0 0.5rem;">${team}</h3>`;
-    list.appendChild(teamSection);
-
-    // Sort players within team by points
-    teamGroups[team]
-      .sort((a, b) => b.points - a.points)
-      .forEach(player => {
-        const li = document.createElement("li");
-        li.textContent = `${player.playerName} | Points: ${player.points}`;
-        const btn = document.createElement("button");
-        btn.textContent = "Draft";
-        btn.onclick = () => {
-          // Check if this player is already drafted
-          if (drafted.includes(player.playerName)) {
-            alert('This player has already been drafted!');
+      function renderPlayers(players) {
+        const searchQuery =
+          document.getElementById("playerSearch")?.value?.toLowerCase() || "";
+        const list = document.getElementById("playerList");
+        list.innerHTML = "";
+        players.sort((a, b) => a.team.localeCompare(b.team));
+        players.forEach((player) => {
+          if (
+            player.eliminated ||
+            draftedPlayerNames.has(player.playerName) ||
+            !player.playerName.toLowerCase().includes(searchQuery)
+          )
             return;
-          }
 
-          // Confirm draft action
-          if (confirm(`Are you sure you want to draft ${player.playerName}?`)) {
+          const li = document.createElement("li");
+          const infoDiv = document.createElement("div");
+          infoDiv.className = "player-info";
+
+          const img = document.createElement("img");
+          img.src = `https://cdn.nba.com/headshots/nba/latest/260x190/${player.playerName.replace(
+            /[^a-zA-Z]/g,
+            ""
+          )}.png`;
+          img.alt = player.playerName;
+          img.onerror = () => {
+            img.src =
+              "https://cdn.nba.com/headshots/nba/latest/260x190/fallback.png";
+          };
+
+          const text = document.createElement("span");
+          text.textContent = `${player.playerName} | ${player.team} | Points: ${player.points}`;
+
+          infoDiv.appendChild(img);
+          infoDiv.appendChild(text);
+
+          const btn = document.createElement("button");
+          btn.textContent = "Draft";
+          btn.onclick = () => {
             const currentTeam = teams[currentIndex];
             draftPicks[currentTeam].push(player.playerName);
-            drafted.push(player.playerName);
-            renderDraftBoard();
-            currentIndex = getNextTeamIndex();
-            document.getElementById("currentTeam").textContent = teams[currentIndex];
-            renderPlayers(players);
-          }
-        };
-        li.appendChild(btn);
-        list.appendChild(li);
-      });
-  });
-}
-  function showFinalResults() {
-  document.getElementById("draftScreen").classList.add("hidden");
-  document.getElementById("completeScreen").classList.remove("hidden");
-  const finalResults = document.getElementById("finalResults");
-  finalResults.innerHTML = "";
-  for (let team in draftPicks) {
-    const li = document.createElement("li");
-    li.innerHTML = `<strong>${team}</strong>: ${draftPicks[team].join(", ")}`;
-    finalResults.appendChild(li);
-  }
-
-  // Save draft to localStorage
-  const userId = localStorage.getItem('userId') || prompt('Please enter your user ID to continue:');
-  localStorage.setItem('userId', userId);
-
-  const completedDrafts = JSON.parse(localStorage.getItem('completedDrafts') || '[]');
-  completedDrafts.push({
-    date: new Date().toLocaleString(),
-    teams: draftPicks,
-    createdBy: userId
-  });
-  localStorage.setItem('completedDrafts', JSON.stringify(completedDrafts));
-}
-
-function loadPreviousDrafts() {
-  const drafts = JSON.parse(localStorage.getItem('completedDrafts') || '[]');
-  const container = document.getElementById('previousDrafts');
-  container.innerHTML = '';
-
-  if (drafts.length === 0) {
-    container.innerHTML = '<p>No previous drafts found.</p>';
-    return;
-  }
-
-  drafts.reverse().forEach((draft, index) => {
-    const draftEl = document.createElement('div');
-    draftEl.className = 'draft-entry';
-    const userId = localStorage.getItem('userId');
-    draftEl.innerHTML = `
-      <h3>Draft ${index + 1} - ${draft.date}</h3>
-      <p class="creator">Created by: ${draft.createdBy || 'Unknown'}</p>
-      <ul>
-        ${Object.entries(draft.teams).map(([team, players]) => 
-          `<li><strong>${team}</strong>: ${players.join(', ')}</li>`
-        ).join('')}
-      </ul>
-      ${draft.createdBy === userId ? 
-        `<button onclick="deleteDraft(${index})" class="delete-btn">Delete Draft</button>` : 
-        ''}
-      <button onclick="viewDraftLeaderboard(${index})" style="margin-left: 10px;">View Leaderboard</button>
-    `;
-    container.appendChild(draftEl);
-  });
-}
-
-async function viewDraftLeaderboard(index) {
-  const drafts = JSON.parse(localStorage.getItem('completedDrafts') || '[]');
-  const draft = drafts[drafts.length - 1 - index];
-  const leaderboardContent = document.getElementById('draftLeaderboardContent');
-  
-  try {
-    const response = await fetch(API_URL);
-    const data = await response.json();
-    
-    // Calculate scores for each team
-    const teamScores = {};
-    for (let team in draft.teams) {
-      let totalScore = 0;
-      const playerDetails = [];
-      draft.teams[team].forEach(playerName => {
-        const player = data.sheet1.find(p => p.playerName === playerName);
-        if (player) {
-          totalScore += player.points;
-          playerDetails.push({ name: playerName, points: player.points });
-        }
-      });
-      teamScores[team] = { total: totalScore, players: playerDetails };
-    }
-
-    // Sort teams by score
-    const sortedTeams = Object.entries(teamScores)
-      .sort(([,a], [,b]) => b.total - a.total);
-
-    // Create leaderboard HTML
-    let html = `
-      <h3>Draft ${index + 1} - ${draft.date}</h3>
-      <div class="leaderboard-rankings">
-        <h4>Overall Rankings</h4>
-        ${sortedTeams.map(([team, data], rank) => 
-          `<div class="rank-item" style="background: #1e293b; padding: 0.5rem 1rem; margin: 0.5rem 0; border-radius: 4px; display: flex; justify-content: space-between;">
-            <span>#${rank + 1} ${team}</span>
-            <strong>${data.total} points</strong>
-          </div>`
-        ).join('')}
-      </div>
-      <h4 style="margin-top: 2rem;">Detailed Team Rosters</h4>
-    `;
-    
-    sortedTeams.forEach(([team, data], rank) => {
-      html += `
-        <div class="team-card" style="background: #1e293b; padding: 1rem; margin: 1rem 0; border-radius: 8px;">
-          <h4>${rank + 1}. ${team} - ${data.total} points</h4>
-          <div class="player-list">
-            ${data.players.sort((a, b) => b.points - a.points).map(p => {
-              const player = data.sheet1.find(pl => pl.playerName === p.name);
-              const isEliminated = player && player.eliminated === 'TRUE';
-              return `
-                <div class="player-item" style="margin: 0.5rem 0; ${isEliminated ? 'color: #ff4444;' : ''}">
-                  ${p.name} - ${p.points} points ${isEliminated ? '(Eliminated)' : ''}
-                </div>
-              `;
-            }).join('')}
-          </div>
-        </div>
-      `;
-    });
-    
-    leaderboardContent.innerHTML = html;
-    document.getElementById('previousDraftsScreen').classList.add('hidden');
-    document.getElementById('draftLeaderboardScreen').classList.remove('hidden');
-  } catch (error) {
-    alert('Error loading leaderboard data');
-    console.error(error);
-  }
-}
-
-function hideDraftLeaderboard() {
-  document.getElementById('draftLeaderboardScreen').classList.add('hidden');
-  document.getElementById('previousDraftsScreen').classList.remove('hidden');
-}
-
-function deleteDraft(index) {
-  if (confirm('Are you sure you want to delete this draft? This action cannot be undone.')) {
-    const drafts = JSON.parse(localStorage.getItem('completedDrafts') || '[]');
-    drafts.splice(drafts.length - 1 - index, 1);
-    localStorage.setItem('completedDrafts', JSON.stringify(drafts));
-    loadPreviousDrafts();
-  }
-}
-
-function deleteAllDrafts() {
-  if (confirm('Are you sure you want to delete ALL drafts? This action cannot be undone.')) {
-    localStorage.setItem('completedDrafts', '[]');
-    loadPreviousDrafts();
-  }
-}
-
-function startNewDraft() {
-  document.getElementById('previousDraftsScreen').classList.add('hidden');
-  document.getElementById('setupScreen').classList.remove('hidden');
-}
-
-// Load previous drafts when page loads
-window.addEventListener('load', loadPreviousDrafts);
-
-// Add search functionality
-document.addEventListener('DOMContentLoaded', () => {
-  const searchInput = document.getElementById('searchInput');
-  if (searchInput) {
-    searchInput.addEventListener('input', () => {
-      fetch(API_URL)
-        .then(res => res.json())
-        .then(data => {
-          renderPlayers(data.sheet1);
+            draftedPlayerNames.add(player.playerName);
+            li.remove();
+            updateDraftBoard();
+            nextTurn();
+          };
+          li.appendChild(infoDiv);
+          li.appendChild(btn);
+          list.appendChild(li);
         });
-    });
-  }
-});
-
-function completeDraft() {
-  if (confirm('Are you sure you want to complete the draft? This will end the draft early.')) {
-    showFinalResults();
-  }
-}
-
-function restartDraft() {
-  location.reload();
-}
-
-function showLiveResults() {
-  document.getElementById('completeScreen').classList.add('hidden');
-  document.getElementById('liveResultsScreen').classList.remove('hidden');
-
-  fetch(API_URL)
-    .then(res => res.json())
-    .then(data => {
-      const leaderboard = document.getElementById('leaderboard');
-      leaderboard.innerHTML = '';
-
-      // Calculate scores for each team
-      const teamScores = {};
-      for (let team in draftPicks) {
-        let totalScore = 0;
-        draftPicks[team].forEach(playerName => {
-          const player = data.sheet1.find(p => p.playerName === playerName);
-          if (player) {
-            totalScore += player.points;
-          }
-        });
-        teamScores[team] = totalScore;
       }
 
-      // Sort teams by score
-      const sortedTeams = Object.entries(teamScores)
-        .sort(([,a], [,b]) => b - a)
-        .map(([team, score]) => ({team, score}));
-
-      // Display leaderboard
-      sortedTeams.forEach((entry, index) => {
-        const li = document.createElement('li');
-        li.innerHTML = `${index + 1}. <strong>${entry.team}</strong> - <span class="score">${entry.score} points</span>`;
-        leaderboard.appendChild(li);
-      });
-    });
-}
-  function startNewDraft() {
-  document.getElementById('previousDraftsScreen').classList.add('hidden');
-  document.getElementById('setupScreen').classList.remove('hidden');
-}
-
-// Check authentication on load
-window.addEventListener('load', function() {
-  fetch('/__replauthuser')
-      .then(res => res.json())
-      .then(user => {
-        if (user) {
-          document.getElementById('loginScreen').classList.add('hidden');
-          document.getElementById('mainContent').classList.remove('hidden');
+      function updateDraftBoard() {
+        const board = document.getElementById("draftBoard");
+        board.innerHTML = "";
+        for (const team of teams) {
+          const li = document.createElement("li");
+          li.textContent = `${team}: ${draftPicks[team].join(", ")}`;
+          board.appendChild(li);
         }
-      })
-      .catch(err => {
-        console.log('Not authenticated');
-      });
-  });
+      }
 
-  // Handle auth complete
-  window.addEventListener('message', function(e) {
-    if (e.data === 'auth_complete') {
-      location.reload();
-    }
-  });
-</script>
-</body>
+      function nextTurn() {
+        if (!reverse) {
+          currentIndex++;
+          if (currentIndex >= teams.length) {
+            currentIndex = teams.length - 1;
+            reverse = true;
+            round++;
+          }
+        } else {
+          currentIndex--;
+          if (currentIndex < 0) {
+            currentIndex = 0;
+            reverse = false;
+            round++;
+          }
+        }
+        if (round > totalRounds) return endDraft();
+        document.getElementById("currentRound").textContent = round;
+        document.getElementById("currentTeam").textContent =
+          teams[currentIndex];
+      }
+
+      function undoLastPick() {
+        const currentTeam = teams[currentIndex];
+        const lastPick = draftPicks[currentTeam].pop();
+        if (lastPick) {
+          draftedPlayerNames.delete(lastPick);
+          updateDraftBoard();
+          renderPlayers(allPlayers);
+        }
+      }
+
+      function endDraft() {
+        const leagueName = document.getElementById("leagueName").value.trim();
+        const savedDrafts = JSON.parse(
+          localStorage.getItem("allDrafts") || "[]"
+        );
+        const newDraft = {
+          id: Date.now(),
+          leagueName,
+          teams,
+          draftPicks,
+          allPlayers,
+        };
+        if (savedDrafts.length >= 5) savedDrafts.shift();
+        savedDrafts.push(newDraft);
+        localStorage.setItem("allDrafts", JSON.stringify(savedDrafts));
+        document.getElementById("endDraftBtn").style.display = "none";
+        document.getElementById("draftControls").style.display = "none";
+
+        const summary = document.createElement("div");
+        summary.style.padding = "2rem";
+        summary.innerHTML = "<h2>Draft Complete</h2>";
+        document.getElementById("winnerSound").play();
+
+        const teamScores = teams
+          .map((team) => {
+            const players = draftPicks[team];
+            const totalPoints = players.reduce((sum, name) => {
+              const player = allPlayers.find((p) => p.playerName === name);
+              return sum + (player ? player.points : 0);
+            }, 0);
+            return { team, players, totalPoints };
+          })
+          .sort((a, b) => b.totalPoints - a.totalPoints);
+
+        summary.innerHTML += "<h3>🏆 Leaderboard</h3>";
+        const leaderboard = document.createElement("ol");
+        leaderboard.className = "leaderboard";
+        teamScores.forEach(({ team, totalPoints }) => {
+          const li = document.createElement("li");
+          li.innerHTML = `<strong>${team}</strong> - ${totalPoints} pts`;
+          leaderboard.appendChild(li);
+        });
+        summary.appendChild(leaderboard);
+
+        const rosterTitle = document.createElement("h3");
+        rosterTitle.textContent = "📋 Final Rosters";
+        summary.appendChild(rosterTitle);
+
+        const ul = document.createElement("ul");
+        ul.style.listStyle = "none";
+        teamScores.forEach(({ team, players, totalPoints }) => {
+          const li = document.createElement("li");
+          li.style.marginBottom = "10px";
+          li.innerHTML = `<strong>${team}</strong> (${totalPoints} pts): ${players.join(
+            ", "
+          )}`;
+          ul.appendChild(li);
+        });
+        summary.appendChild(ul);
+
+        const homeBtn = document.createElement("button");
+        homeBtn.textContent = "Return to Home";
+        homeBtn.style.marginTop = "1rem";
+        homeBtn.onclick = () => location.reload();
+        summary.appendChild(homeBtn);
+
+        document.getElementById("mainApp").innerHTML = "";
+        document.getElementById("mainApp").appendChild(summary);
+      }
+
+      function viewPreviousDraft() {
+        const container = document.getElementById("previousDrafts");
+        container.innerHTML = "<h2>🏅 Previous Draft Leaderboards</h2>";
+
+        let drafts = JSON.parse(localStorage.getItem("allDrafts") || "[]");
+
+        if (drafts.length === 0) {
+          container.innerHTML += "<p>No previous drafts found.</p>";
+        } else {
+          drafts.reverse().forEach((draft) => {
+            const section = document.createElement("section");
+            section.style.marginBottom = "2rem";
+
+            const header = document.createElement("div");
+            header.style.display = "flex";
+            header.style.justifyContent = "space-between";
+            header.style.alignItems = "center";
+            header.style.gap = "1rem";
+
+            const title = document.createElement("h3");
+            title.textContent = draft.leagueName;
+            header.appendChild(title);
+
+            const downloadBtn = document.createElement("button");
+            downloadBtn.textContent = "⬇️ Download CSV";
+            downloadBtn.style.background = "#2980b9";
+            downloadBtn.style.color = "#fff";
+            downloadBtn.style.border = "none";
+            downloadBtn.style.padding = "4px 8px";
+            downloadBtn.style.borderRadius = "5px";
+            downloadBtn.style.cursor = "pointer";
+            downloadBtn.onclick = () => downloadDraftCSV(draft);
+            header.appendChild(downloadBtn);
+
+            const deleteBtn = document.createElement("button");
+            deleteBtn.textContent = "🗑️ Delete";
+            deleteBtn.style.background = "#c0392b";
+            deleteBtn.style.color = "#fff";
+            deleteBtn.style.border = "none";
+            deleteBtn.style.padding = "4px 8px";
+            deleteBtn.style.borderRadius = "5px";
+            deleteBtn.style.cursor = "pointer";
+            deleteBtn.onclick = () => {
+              const confirmDelete = confirm(
+                `Are you sure you want to delete the draft "${draft.leagueName}"? This cannot be undone.`
+              );
+              if (confirmDelete) {
+                drafts = drafts.filter((d) => d.id !== draft.id);
+                localStorage.setItem(
+                  "allDrafts",
+                  JSON.stringify(drafts.reverse())
+                ); // reverse back before saving
+                viewPreviousDraft();
+              }
+            };
+            header.appendChild(deleteBtn);
+
+            section.appendChild(header);
+
+            const scores = draft.teams
+              .map((team) => {
+                const players = draft.draftPicks[team];
+                const totalPoints = players.reduce((sum, name) => {
+                  const player = draft.allPlayers.find(
+                    (p) => p.playerName === name
+                  );
+                  return sum + (player ? player.points : 0);
+                }, 0);
+                return { team, players, totalPoints };
+              })
+              .sort((a, b) => b.totalPoints - a.totalPoints);
+
+            const leaderboard = document.createElement("ol");
+            leaderboard.className = "leaderboard";
+            scores.forEach(({ team, totalPoints }) => {
+              const li = document.createElement("li");
+              li.innerHTML = `<strong>${team}</strong> - ${totalPoints} pts`;
+              leaderboard.appendChild(li);
+            });
+
+            section.appendChild(leaderboard);
+
+            const rosterList = document.createElement("ul");
+            scores.forEach(({ team, players }) => {
+              const li = document.createElement("li");
+              li.innerHTML = `<strong>${team}</strong>: ${players.join(", ")}`;
+              rosterList.appendChild(li);
+            });
+            section.appendChild(rosterList);
+
+            container.appendChild(section);
+          });
+        }
+
+        // ⬇️ Export Button
+        const exportBtn = document.createElement("button");
+        exportBtn.textContent = "⬇️ Export Drafts (.json)";
+        exportBtn.style.marginTop = "1rem";
+        exportBtn.onclick = () => {
+          const allDrafts = localStorage.getItem("allDrafts");
+          const blob = new Blob([allDrafts], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "dropScore_drafts_backup.json";
+          a.click();
+          URL.revokeObjectURL(url);
+        };
+        container.appendChild(exportBtn);
+
+        // ⬆️ Import Input
+        const importLabel = document.createElement("label");
+        importLabel.textContent = "⬆️ Import Drafts (.json)";
+        importLabel.style.display = "block";
+        importLabel.style.marginTop = "1rem";
+
+        const importInput = document.createElement("input");
+        importInput.type = "file";
+        importInput.accept = ".json";
+        importInput.onchange = (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            try {
+              const imported = JSON.parse(event.target.result);
+              if (Array.isArray(imported)) {
+                localStorage.setItem("allDrafts", JSON.stringify(imported));
+                alert("Drafts imported successfully! Refreshing...");
+                viewPreviousDraft();
+              } else {
+                alert("Invalid JSON format.");
+              }
+            } catch (err) {
+              alert("Error reading file: " + err.message);
+            }
+          };
+          reader.readAsText(file);
+        };
+
+        container.appendChild(importLabel);
+        container.appendChild(importInput);
+
+        // ⏪ Return Home
+        const homeBtn = document.createElement("button");
+        homeBtn.textContent = "Return to Home";
+        homeBtn.style.marginTop = "1rem";
+        homeBtn.onclick = () => {
+          container.style.display = "none";
+          document.getElementById("welcomeScreen").style.display = "block";
+        };
+        container.appendChild(homeBtn);
+
+        document.getElementById("welcomeScreen").style.display = "none";
+        container.style.display = "block";
+      }
+      function downloadDraftCSV(draft) {
+        let csv = `League: ${draft.leagueName}\n\nTeam,Players,Total Points\n`;
+
+        draft.teams.forEach((team) => {
+          const players = draft.draftPicks[team];
+          const totalPoints = players.reduce((sum, name) => {
+            const player = draft.allPlayers.find((p) => p.playerName === name);
+            return sum + (player ? player.points : 0);
+          }, 0);
+          csv += `"${team}","${players.join(", ")}",${totalPoints}\n`;
+        });
+
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${draft.leagueName.replace(/\s+/g, "_")}_draft.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    </script>
+  </body>
 </html>
