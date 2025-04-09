@@ -1,6 +1,4 @@
-Here’s a `README.md` file for your **DropScore Player Viewer** project:
 
----
 
 # 🏀 DropScore Player Viewer
 
@@ -142,4 +140,3 @@ To deploy on GitHub Pages:
 
 ---
 
-Let me know if you'd like this as a downloadable file or want it customized further!
