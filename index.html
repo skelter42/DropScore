@@ -66,16 +66,24 @@
     <button onclick="startDraft()">Begin Snake Draft</button>
   </div>
 
-  <!-- Draft Interface -->
-  <div id="draftUI" class="screen">
-    <h2>Round <span id="roundNum">1</span> - <span id="currentTeam"></span>'s Turn</h2>
-    <input type="text" id="searchInput" placeholder="Search by player or team..." oninput="renderPlayers()" />
-    <ul id="playerList">Loading players...</ul>
-    <h3>Draft Board</h3>
-    <ul id="draftBoard"></ul>
+<!-- Draft Interface -->
+<div id="draftUI" class="screen">
+  <h2>Round <span id="roundNum">1</span> - <span id="currentTeam"></span>'s Turn</h2>
+
+  <h3>Draft Board</h3>
+  <ul id="draftBoard"></ul>
+
+  <div style="display: flex; gap: 10px; margin: 1rem 0;">
     <button onclick="undoLastPick()">Undo Last Pick</button>
     <button onclick="endDraft()">End Draft</button>
   </div>
+
+  <input type="text" id="searchInput" placeholder="Search by player or team..." oninput="renderPlayers()" />
+  <ul id="playerList">Loading players...</ul>
+</div>
+
+
+
 
   <!-- Leaderboard Screen -->
   <div id="leaderboardScreen" class="screen">
@@ -85,6 +93,71 @@
   </div>
 
   <script>
+const teamLogos = {
+  ATL: "https://cdn.nba.com/logos/nba/1610612737/primary/L/logo.svg",
+  BOS: "https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg",
+  BKN: "https://cdn.nba.com/logos/nba/1610612751/primary/L/logo.svg",
+  CHA: "https://cdn.nba.com/logos/nba/1610612766/primary/L/logo.svg",
+  CHI: "https://cdn.nba.com/logos/nba/1610612741/primary/L/logo.svg",
+  CLE: "https://cdn.nba.com/logos/nba/1610612739/primary/L/logo.svg",
+  DAL: "https://cdn.nba.com/logos/nba/1610612742/primary/L/logo.svg",
+  DEN: "https://cdn.nba.com/logos/nba/1610612743/primary/L/logo.svg",
+  DET: "https://cdn.nba.com/logos/nba/1610612765/primary/L/logo.svg",
+  GSW: "https://cdn.nba.com/logos/nba/1610612744/primary/L/logo.svg",
+  HOU: "https://cdn.nba.com/logos/nba/1610612745/primary/L/logo.svg",
+  IND: "https://cdn.nba.com/logos/nba/1610612754/primary/L/logo.svg",
+  LAC: "https://cdn.nba.com/logos/nba/1610612746/primary/L/logo.svg",
+  LAL: "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg",
+  MEM: "https://cdn.nba.com/logos/nba/1610612763/primary/L/logo.svg",
+  MIA: "https://cdn.nba.com/logos/nba/1610612748/primary/L/logo.svg",
+  MIL: "https://cdn.nba.com/logos/nba/1610612749/primary/L/logo.svg",
+  MIN: "https://cdn.nba.com/logos/nba/1610612750/primary/L/logo.svg",
+  NOP: "https://cdn.nba.com/logos/nba/1610612740/primary/L/logo.svg",
+  NYK: "https://cdn.nba.com/logos/nba/1610612752/primary/L/logo.svg",
+  OKC: "https://cdn.nba.com/logos/nba/1610612760/primary/L/logo.svg",
+  ORL: "https://cdn.nba.com/logos/nba/1610612753/primary/L/logo.svg",
+  PHI: "https://cdn.nba.com/logos/nba/1610612755/primary/L/logo.svg",
+  PHO: "https://cdn.nba.com/logos/nba/1610612756/primary/L/logo.svg",
+  POR: "https://cdn.nba.com/logos/nba/1610612757/primary/L/logo.svg",
+  SAC: "https://cdn.nba.com/logos/nba/1610612758/primary/L/logo.svg",
+  SAS: "https://cdn.nba.com/logos/nba/1610612759/primary/L/logo.svg",
+  TOR: "https://cdn.nba.com/logos/nba/1610612761/primary/L/logo.svg",
+  UTA: "https://cdn.nba.com/logos/nba/1610612762/primary/L/logo.svg",
+  WAS: "https://cdn.nba.com/logos/nba/1610612764/primary/L/logo.svg"
+};
+const teamNameMap = {
+  ATL: "Atlanta Hawks",
+  BOS: "Boston Celtics",
+  BKN: "Brooklyn Nets",
+  CHA: "Charlotte Hornets",
+  CHI: "Chicago Bulls",
+  CLE: "Cleveland Cavaliers",
+  DAL: "Dallas Mavericks",
+  DEN: "Denver Nuggets",
+  DET: "Detroit Pistons",
+  GSW: "Golden State Warriors",
+  HOU: "Houston Rockets",
+  IND: "Indiana Pacers",
+  LAC: "LA Clippers",
+  LAL: "Los Angeles Lakers",
+  MEM: "Memphis Grizzlies",
+  MIA: "Miami Heat",
+  MIL: "Milwaukee Bucks",
+  MIN: "Minnesota Timberwolves",
+  NOP: "New Orleans Pelicans",
+  NYK: "New York Knicks",
+  OKC: "Oklahoma City Thunder",
+  ORL: "Orlando Magic",
+  PHI: "Philadelphia 76ers",
+  PHX: "Phoenix Suns",
+  POR: "Portland Trail Blazers",
+  SAC: "Sacramento Kings",
+  SAS: "San Antonio Spurs",
+  TOR: "Toronto Raptors",
+  UTA: "Utah Jazz",
+  WAS: "Washington Wizards"
+};
+
     const playerAPI = "https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/draftPicks";
 
     let teams = [];
@@ -96,23 +169,74 @@
     let round = 1;
     let reverse = false;
 
-    function goToDraftSetup() {
-      const teamCount = parseInt(document.getElementById("teamCount").value);
-      const leagueName = document.getElementById("leagueName").value.trim();
-      if (!leagueName || teamCount < 2 || teamCount > 12) {
-        alert("Enter a valid league name and team count (2–12).");
-        return;
-      }
+   async function goToDraftSetup() {
+  const leagueName = document.getElementById("leagueName").value.trim();
+  const teamCount = parseInt(document.getElementById("teamCount").value);
 
-      document.getElementById("homeScreen").classList.remove("visible");
-      document.getElementById("draftScreen").classList.add("visible");
+  if (!leagueName || teamCount < 2 || teamCount > 12) {
+    alert("Enter a valid league name and team count (2–12).");
+    return;
+  }
 
-      const container = document.getElementById("teamInputs");
-      container.innerHTML = "";
-      for (let i = 0; i < teamCount; i++) {
-        container.innerHTML += `<input type="text" id="team${i}" placeholder="Team ${i + 1}" />`;
-      }
+  const exists = await doesLeagueExist(leagueName);
+  if (exists) {
+    alert("🚫 League name already exists. Please choose another.");
+    return;
+  }
+
+  // Proceed to draft screen
+  document.getElementById("homeScreen").classList.remove("visible");
+  document.getElementById("draftScreen").classList.add("visible");
+
+  const container = document.getElementById("teamInputs");
+  container.innerHTML = "";
+  for (let i = 0; i < teamCount; i++) {
+    container.innerHTML += `<input type="text" id="team${i}" placeholder="Team ${i + 1}" />`;
+  }
+}
+async function doesLeagueExist(leagueName) {
+  try {
+    const res = await fetch("https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/leagues");
+    const data = await res.json();
+    const allLeagues = data.leagues || [];
+    return allLeagues.some(l => l.leagueName.toLowerCase() === leagueName.toLowerCase());
+  } catch (err) {
+    console.error("Error checking league existence:", err);
+    return false; // Fail open if error
+  }
+}
+async function saveLeagueToSheety(leagueName, teams, draftPicks) {
+  // Display-friendly versions
+  const formattedTeams = teams.join(", ");
+  const formattedPicks = Object.entries(draftPicks)
+    .map(([team, picks]) => `${team}: ${picks.join(", ")}`)
+    .join(" | ");
+
+  const payload = {
+    league: {
+      leagueName,
+      teamsDisplay: formattedTeams,            // human readable
+      draftPicksDisplay: formattedPicks,       // human readable
+      teams: JSON.stringify(teams),            // raw for app use
+      draftPicks: JSON.stringify(draftPicks)   // raw for app use
     }
+  };
+
+  try {
+    const res = await fetch("https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/leagues", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    console.log("Saved league ✅", data);
+    return res.ok;
+  } catch (err) {
+    console.error("Failed to save league ❌", err);
+    return false;
+  }
+}
 
     function startDraft() {
       teams = [];
@@ -143,56 +267,65 @@
         });
     }
 
-    function renderPlayers() {
-      const list = document.getElementById("playerList");
-      const search = document.getElementById("searchInput")?.value?.toLowerCase() || "";
-      list.innerHTML = "";
+   function renderPlayers() {
+  const list = document.getElementById("playerList");
+  const search = (document.getElementById("searchInput")?.value || "").toLowerCase();
+  list.innerHTML = "";
 
-      const filtered = players.filter(p => {
-        const name = p.player.toLowerCase();
-        const team = p.team.toLowerCase();
-        return !drafted.has(p.player) && (name.includes(search) || team.includes(search));
-      });
+  const filtered = players.filter(p => {
+    const playerName = p.player.toLowerCase();
+    const playerTeam = p.team.toLowerCase();
+    return !drafted.has(p.player) &&
+      (playerName.includes(search) || playerTeam.includes(search));
+  });
 
-      const grouped = {};
-      filtered.forEach(p => {
-        if (!grouped[p.team]) grouped[p.team] = [];
-        grouped[p.team].push(p);
-      });
+  filtered.forEach(p => {
+    const li = document.createElement("li");
+    li.style.marginBottom = "6px";
 
-      Object.keys(grouped).sort().forEach(teamName => {
-        const teamHeader = document.createElement("li");
-        teamHeader.textContent = `🏀 ${teamName}`;
-        teamHeader.style.fontWeight = "bold";
-        teamHeader.style.marginTop = "1rem";
-        teamHeader.style.background = "none";
-        teamHeader.style.padding = "4px 8px";
-        list.appendChild(teamHeader);
+    const wrapper = document.createElement("div");
+    wrapper.style.display = "flex";
+    wrapper.style.justifyContent = "space-between";
+    wrapper.style.alignItems = "center";
+    wrapper.style.width = "100%";
 
-        grouped[teamName].forEach(p => {
-          const li = document.createElement("li");
+    const infoDiv = document.createElement("div");
+    const logoURL = teamLogos[p.team.toUpperCase()];
+    infoDiv.innerHTML = logoURL
+      ? `<img src="${logoURL}" alt="${p.team}" style="height:20px;vertical-align:middle;margin-right:6px;"> ${p.player} (${p.team})`
+      : `${p.player} (${p.team})`;
 
-          const wrapper = document.createElement("div");
-          wrapper.style.display = "flex";
-          wrapper.style.justifyContent = "space-between";
-          wrapper.style.alignItems = "center";
-          wrapper.style.width = "100%";
+    const button = document.createElement("button");
+    button.textContent = "Draft";
+    button.style.width = "100px";
+    button.onclick = () => draftPlayer(p.player);
 
-          const infoDiv = document.createElement("div");
-          infoDiv.textContent = `${p.player}`;
+    wrapper.appendChild(infoDiv);
+    wrapper.appendChild(button);
+    li.appendChild(wrapper);
+    list.appendChild(li);
+  });
+}
 
-          const button = document.createElement("button");
-          button.textContent = "Draft";
-          button.style.width = "100px";
-          button.onclick = () => draftPlayer(p.player);
+function initTeamDropdown() {
+  const dropdown = document.getElementById("teamDropdown");
+  if (!dropdown) return;
 
-          wrapper.appendChild(infoDiv);
-          wrapper.appendChild(button);
-          li.appendChild(wrapper);
-          list.appendChild(li);
-        });
-      });
-    }
+  // Use a Set to collect unique team names (converted to lowercase for consistency)
+  const teamSet = new Set();
+  players.forEach(p => teamSet.add(p.team.toLowerCase()));
+
+  const teamsArray = Array.from(teamSet).sort();
+  
+  // Start with the "All Teams" option
+  let optionsHTML = `<option value="all">All Teams</option>`;
+  teamsArray.forEach(team => {
+    optionsHTML += `<option value="${team}">${team.toUpperCase()}</option>`;
+  });
+  
+  dropdown.innerHTML = optionsHTML;
+}
+
 
     function draftPlayer(name) {
       const team = teams[currentTeamIndex];
@@ -247,83 +380,103 @@
       renderPlayers();
     }
 
-    function endDraft() {
+    async function endDraft() {
   const statsAPI = "https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/playerStats";
 
-  fetch(statsAPI)
-    .then(res => res.json())
-    .then(data => {
-      const playerStats = data.playerStats || [];
-      window.latestStats = playerStats; // ✅ Store globally
+  try {
+    const res = await fetch(statsAPI);
+    const data = await res.json();
+    const playerStats = data.playerStats || [];
+    window.latestStats = playerStats;
 
-      const teamTotals = [];
+    const teamTotals = [];
 
-      teams.forEach(team => {
-        const picks = draftPicks[team];
-        let totalPoints = 0;
+    teams.forEach(team => {
+      const picks = draftPicks[team];
+      let totalPoints = 0;
 
-        picks.forEach(name => {
-          const stat = playerStats.find(p => p.player === name);
-          if (stat && stat.points !== undefined) {
-            totalPoints += Math.round(Number(stat.points));
-          } else {
-            console.warn("⚠️ No stat found for:", name);
-          }
-        });
-
-        teamTotals.push({ team, totalPoints, picks });
+      picks.forEach(name => {
+        const stat = playerStats.find(p => p.player === name);
+        if (stat && stat.points !== undefined) {
+          totalPoints += Math.round(Number(stat.points));
+        } else {
+          console.warn("⚠️ No stat found for:", name);
+        }
       });
 
-      localStorage.setItem("savedDraft", JSON.stringify({ draftPicks, teams }));
-      teamTotals.sort((a, b) => b.totalPoints - a.totalPoints);
-      showLeaderboard(teamTotals);
-    })
-    .catch(err => {
-      alert("Failed to load stats.");
-      console.error("Stats error:", err);
+      teamTotals.push({ team, totalPoints, picks });
     });
+
+    const leagueName = document.getElementById("leagueName").value.trim();
+    const saved = await saveLeagueToSheety(leagueName, teams, draftPicks);
+    if (!saved) {
+      alert("Failed to save your league. Please try again.");
+      return;
+    }
+
+    teamTotals.sort((a, b) => b.totalPoints - a.totalPoints);
+    showLeaderboard(teamTotals);
+
+  } catch (err) {
+    alert("Failed to load stats.");
+    console.error("Stats error:", err);
+  }
 }
-    function viewSavedLeaderboard() {
-  const saved = JSON.parse(localStorage.getItem("savedDraft"));
-  if (!saved || !saved.teams || !saved.draftPicks) {
-    alert("No saved draft found.");
+
+   async function viewSavedLeaderboard() {
+  const leagueName = document.getElementById("leagueName").value.trim();
+  if (!leagueName) {
+    alert("Please enter a league name.");
     return;
   }
 
-  fetch("https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/playerStats")
-    .then(res => res.json())
-    .then(data => {
-      const playerStats = data.playerStats || [];
-      window.latestStats = playerStats; // ✅ Store globally
+  try {
+    const res = await fetch("https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/leagues");
+    const data = await res.json();
+    const allLeagues = data.leagues || [];
+    const match = allLeagues.find(l => l.leagueName.toLowerCase() === leagueName.toLowerCase());
 
-      const teamTotals = [];
+    if (!match) {
+      alert("League not found.");
+      return;
+    }
 
-      saved.teams.forEach(team => {
-        const picks = saved.draftPicks[team];
-        let totalPoints = 0;
+    const teams = JSON.parse(match.teams);
+    const draftPicks = JSON.parse(match.draftPicks);
 
-        picks.forEach(name => {
-          const stat = playerStats.find(p => p.player === name);
-          if (stat && stat.points !== undefined) {
-            totalPoints += Math.round(Number(stat.points));
-          } else {
-            console.warn("⚠️ No stat found for:", name);
-          }
-        });
+    const statsRes = await fetch("https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/playerStats");
+    const statsData = await statsRes.json();
+    const playerStats = statsData.playerStats || [];
+    window.latestStats = playerStats;
 
-        teamTotals.push({ team, totalPoints, picks });
+    const teamTotals = [];
+
+    teams.forEach(team => {
+      const picks = draftPicks[team];
+      let totalPoints = 0;
+
+      picks.forEach(name => {
+        const stat = playerStats.find(p => p.player === name);
+        if (stat && stat.points !== undefined) {
+          totalPoints += Math.round(Number(stat.points));
+        } else {
+          console.warn("⚠️ No stat found for:", name);
+        }
       });
 
-      teamTotals.sort((a, b) => b.totalPoints - a.totalPoints);
-      showLeaderboard(teamTotals);
-    })
-    .catch(err => {
-      alert("Failed to load stats.");
-      console.error("Stats error:", err);
+      teamTotals.push({ team, totalPoints, picks });
     });
+
+    teamTotals.sort((a, b) => b.totalPoints - a.totalPoints);
+    showLeaderboard(teamTotals);
+
+  } catch (err) {
+    alert("Failed to load leaderboard.");
+    console.error("Leaderboard error:", err);
+  }
 }
 
-   function showLeaderboard(teamTotals) {
+  function showLeaderboard(teamTotals) {
   document.getElementById("draftUI").classList.remove("visible");
   document.getElementById("homeScreen").classList.remove("visible");
   document.getElementById("leaderboardScreen").classList.add("visible");
@@ -370,8 +523,14 @@
       const pts = stat ? Math.round(stat.points) : 0;
       const eliminated = stat?.eliminated?.toLowerCase() === "yes";
 
+      const teamAbbr = stat?.team?.toUpperCase();
+      const teamLogo = teamLogos[teamAbbr];
+
       const detail = document.createElement("li");
-      detail.textContent = `${eliminated ? "❌ " : ""}${player} - ${pts} pts`;
+      detail.innerHTML = `
+        ${teamLogo ? `<img src="${teamLogo}" alt="${teamAbbr}" style="height:16px;vertical-align:middle;margin-right:6px;">` : ""}
+        ${eliminated ? "❌ " : ""}${player} - ${pts} pts
+      `;
       detail.style.marginLeft = "16px";
       detail.style.fontSize = "0.95rem";
       if (eliminated) {
@@ -393,7 +552,22 @@
 }
 
 
+function getMostCommonTeam(players) {
+  const freq = {};
+  players.forEach(player => {
+    const stat = window.latestStats.find(p => p.player === player);
+    const abbr = stat?.team?.toUpperCase();
+    if (abbr) {
+      freq[abbr] = (freq[abbr] || 0) + 1;
+    }
+  });
+  const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
+  return sorted[0]?.[0]; // Return most common team abbreviation
+}
+
+
   </script>
 
 </body>
 </html>
+
