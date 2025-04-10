@@ -50,46 +50,31 @@
 </head>
 <body>
 
-  <!-- Home Screen -->
-  <div id="homeScreen" class="screen visible">
-    <h1>🏀 DropScore Draft</h1>
-    <input type="text" id="leagueName" placeholder="Enter League Name" />
-    <input type="number" id="teamCount" min="2" max="12" value="4" placeholder="Team Count" />
-    <button onclick="goToDraftSetup()">Start Draft</button>
-    <button onclick="viewSavedLeaderboard()">📊 View Saved Leaderboard</button>
-  </div>
+  
+<div id="homeScreen" class="screen visible">
+  <h1>🏀 DropScore Draft</h1>
+  <input type="text" id="usernameInput" placeholder="Enter your name" />
+  <input type="email" id="emailInput" placeholder="Enter your email" />
+  <button onclick="startDraft()">Start Draft</button>
 
-  <!-- Draft Setup -->
-  <div id="draftScreen" class="screen">
-    <h2>Enter Team Names</h2>
-    <div id="teamInputs"></div>
-    <button onclick="startDraft()">Begin Snake Draft</button>
-  </div>
-
-<!-- Draft Interface -->
-<div id="draftUI" class="screen">
-  <h2>Round <span id="roundNum">1</span> - <span id="currentTeam"></span>'s Turn</h2>
-
-  <h3>Draft Board</h3>
-  <ul id="draftBoard"></ul>
-
-  <div style="display: flex; gap: 10px; margin: 1rem 0;">
-    <button onclick="undoLastPick()">Undo Last Pick</button>
-    <button onclick="endDraft()">End Draft</button>
-  </div>
-
-  <input type="text" id="searchInput" placeholder="Search by player or team..." oninput="renderPlayers()" />
-  <ul id="playerList">Loading players...</ul>
+  <h2>📊 Live Leaderboard</h2>
+  <ul id="liveLeaderboardList"></ul>
 </div>
 
 
+  <div id="draftUI" class="screen">
+    <h2>Pick your top 10 players</h2>
+    <h3>Your Picks</h3>
+    <ul id="draftBoard"></ul>
 
+    <input type="text" id="searchInput" placeholder="Search by player or team..." oninput="renderPlayers()" />
+    <ul id="playerList">Loading players...</ul>
+  </div>
 
-  <!-- Leaderboard Screen -->
   <div id="leaderboardScreen" class="screen">
-    <h2>🏆 Final Leaderboard</h2>
+    <h2>🏆 Your Draft Result</h2>
     <ul id="leaderboardList"></ul>
-    <button onclick="location.reload()">🔄 Start New Draft</button>
+    <button onclick="location.reload()">🔄 Draft Again</button>
   </div>
 
   <script>
@@ -125,449 +110,298 @@ const teamLogos = {
   UTA: "https://cdn.nba.com/logos/nba/1610612762/primary/L/logo.svg",
   WAS: "https://cdn.nba.com/logos/nba/1610612764/primary/L/logo.svg"
 };
-const teamNameMap = {
-  ATL: "Atlanta Hawks",
-  BOS: "Boston Celtics",
-  BKN: "Brooklyn Nets",
-  CHA: "Charlotte Hornets",
-  CHI: "Chicago Bulls",
-  CLE: "Cleveland Cavaliers",
-  DAL: "Dallas Mavericks",
-  DEN: "Denver Nuggets",
-  DET: "Detroit Pistons",
-  GSW: "Golden State Warriors",
-  HOU: "Houston Rockets",
-  IND: "Indiana Pacers",
-  LAC: "LA Clippers",
-  LAL: "Los Angeles Lakers",
-  MEM: "Memphis Grizzlies",
-  MIA: "Miami Heat",
-  MIL: "Milwaukee Bucks",
-  MIN: "Minnesota Timberwolves",
-  NOP: "New Orleans Pelicans",
-  NYK: "New York Knicks",
-  OKC: "Oklahoma City Thunder",
-  ORL: "Orlando Magic",
-  PHI: "Philadelphia 76ers",
-  PHX: "Phoenix Suns",
-  POR: "Portland Trail Blazers",
-  SAC: "Sacramento Kings",
-  SAS: "San Antonio Spurs",
-  TOR: "Toronto Raptors",
-  UTA: "Utah Jazz",
-  WAS: "Washington Wizards"
-};
 
-    const playerAPI = "https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/draftPicks";
+const playerAPI = "https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/draftPicks";
+const statsAPI = "https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/playerStats";
 
-    let teams = [];
-    let draftPicks = {};
-    let drafted = new Set();
-    let players = [];
-    let totalRounds = 5;
-    let currentTeamIndex = 0;
-    let round = 1;
-    let reverse = false;
+let drafted = new Set();
+let draftPicks = [];
+let players = [];
+let submissionInProgress = false;
 
-   async function goToDraftSetup() {
-  const leagueName = document.getElementById("leagueName").value.trim();
-  const teamCount = parseInt(document.getElementById("teamCount").value);
+function startDraft() {
+  const username = document.getElementById("usernameInput").value.trim();
+  const email = document.getElementById("emailInput").value.trim();
 
-  if (!leagueName || teamCount < 2 || teamCount > 12) {
-    alert("Enter a valid league name and team count (2–12).");
+  if (!username || !email) {
+    alert("Please enter both your name and email.");
     return;
   }
 
-  const exists = await doesLeagueExist(leagueName);
-  if (exists) {
-    alert("🚫 League name already exists. Please choose another.");
-    return;
-  }
+  window.currentUser = username;
+  window.currentEmail = email;
 
-  // Proceed to draft screen
+  console.log("✅ Captured:", window.currentUser, window.currentEmail);
+
+  drafted = new Set();
+  draftPicks = [];
+
   document.getElementById("homeScreen").classList.remove("visible");
-  document.getElementById("draftScreen").classList.add("visible");
+  document.getElementById("draftUI").classList.add("visible");
 
-  const container = document.getElementById("teamInputs");
-  container.innerHTML = "";
-  for (let i = 0; i < teamCount; i++) {
-    container.innerHTML += `<input type="text" id="team${i}" placeholder="Team ${i + 1}" />`;
-  }
-}
-async function doesLeagueExist(leagueName) {
-  try {
-    const res = await fetch("https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/leagues");
-    const data = await res.json();
-    const allLeagues = data.leagues || [];
-    return allLeagues.some(l => l.leagueName.toLowerCase() === leagueName.toLowerCase());
-  } catch (err) {
-    console.error("Error checking league existence:", err);
-    return false; // Fail open if error
-  }
-}
-async function saveLeagueToSheety(leagueName, teams, draftPicks) {
-  // Display-friendly versions
-  const formattedTeams = teams.join(", ");
-  const formattedPicks = Object.entries(draftPicks)
-    .map(([team, picks]) => `${team}: ${picks.join(", ")}`)
-    .join(" | ");
-
-  const payload = {
-    league: {
-      leagueName,
-      teamsDisplay: formattedTeams,            // human readable
-      draftPicksDisplay: formattedPicks,       // human readable
-      teams: JSON.stringify(teams),            // raw for app use
-      draftPicks: JSON.stringify(draftPicks)   // raw for app use
-    }
-  };
-
-  try {
-    const res = await fetch("https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/leagues", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+  fetch(playerAPI)
+    .then(res => res.json())
+    .then(data => {
+      players = data.draftPicks || [];
+      renderPlayers();
+    })
+    .catch(err => {
+      console.error("⚠️ Failed to load players:", err);
+      alert("Failed to load player list.");
     });
-
-    const data = await res.json();
-    console.log("Saved league ✅", data);
-    return res.ok;
-  } catch (err) {
-    console.error("Failed to save league ❌", err);
-    return false;
-  }
 }
 
-    function startDraft() {
-      teams = [];
-      const container = document.getElementById("teamInputs").children;
-      for (let i = 0; i < container.length; i++) {
-        const name = container[i].value || container[i].placeholder;
-        teams.push(name);
-        draftPicks[name] = [];
-      }
 
-      teams.sort(() => Math.random() - 0.5);
-
-      document.getElementById("draftScreen").classList.remove("visible");
-      document.getElementById("draftUI").classList.add("visible");
-
-      document.getElementById("currentTeam").textContent = teams[currentTeamIndex];
-      document.getElementById("roundNum").textContent = round;
-
-      fetch(playerAPI)
-        .then(res => res.json())
-        .then(data => {
-          players = data.draftPicks || [];
-          renderPlayers();
-        })
-        .catch(err => {
-          console.error(err);
-          alert("Failed to load players from API.");
-        });
-    }
-
-   function renderPlayers() {
+function renderPlayers() {
   const list = document.getElementById("playerList");
   const search = (document.getElementById("searchInput")?.value || "").toLowerCase();
   list.innerHTML = "";
 
   const filtered = players.filter(p => {
-    const playerName = p.player.toLowerCase();
-    const playerTeam = p.team.toLowerCase();
-    return !drafted.has(p.player) &&
-      (playerName.includes(search) || playerTeam.includes(search));
+    const name = p.player.toLowerCase();
+    const team = p.team.toLowerCase();
+    return !drafted.has(p.player) && (name.includes(search) || team.includes(search));
   });
 
   filtered.forEach(p => {
     const li = document.createElement("li");
-    li.style.marginBottom = "6px";
 
     const wrapper = document.createElement("div");
     wrapper.style.display = "flex";
     wrapper.style.justifyContent = "space-between";
     wrapper.style.alignItems = "center";
-    wrapper.style.width = "100%";
 
     const infoDiv = document.createElement("div");
-    const logoURL = teamLogos[p.team.toUpperCase()];
-    infoDiv.innerHTML = logoURL
-      ? `<img src="${logoURL}" alt="${p.team}" style="height:20px;vertical-align:middle;margin-right:6px;"> ${p.player} (${p.team})`
+    const logo = teamLogos[p.team.toUpperCase()];
+    infoDiv.innerHTML = logo
+      ? `<img src="${logo}" style="height:20px;vertical-align:middle;margin-right:6px;"> ${p.player} (${p.team})`
       : `${p.player} (${p.team})`;
 
-    const button = document.createElement("button");
-    button.textContent = "Draft";
-    button.style.width = "100px";
-    button.onclick = () => draftPlayer(p.player);
+    const btn = document.createElement("button");
+    btn.textContent = "Draft";
+    btn.style.width = "80px";
+    btn.onclick = () => draftPlayer(p.player);
 
     wrapper.appendChild(infoDiv);
-    wrapper.appendChild(button);
+    wrapper.appendChild(btn);
     li.appendChild(wrapper);
     list.appendChild(li);
   });
 }
 
-function initTeamDropdown() {
-  const dropdown = document.getElementById("teamDropdown");
-  if (!dropdown) return;
+function draftPlayer(name) {
+  draftPicks.push(name);
+  drafted.add(name);
+  updateDraftBoard();
+  renderPlayers();
 
-  // Use a Set to collect unique team names (converted to lowercase for consistency)
-  const teamSet = new Set();
-  players.forEach(p => teamSet.add(p.team.toLowerCase()));
-
-  const teamsArray = Array.from(teamSet).sort();
-  
-  // Start with the "All Teams" option
-  let optionsHTML = `<option value="all">All Teams</option>`;
-  teamsArray.forEach(team => {
-    optionsHTML += `<option value="${team}">${team.toUpperCase()}</option>`;
-  });
-  
-  dropdown.innerHTML = optionsHTML;
+  if (draftPicks.length >= 10) endDraft();
 }
 
-
-    function draftPlayer(name) {
-      const team = teams[currentTeamIndex];
-      draftPicks[team].push(name);
-      drafted.add(name);
-      updateDraftBoard();
-      nextTurn();
-      renderPlayers();
-    }
-
-    function nextTurn() {
-      if (!reverse) {
-        currentTeamIndex++;
-        if (currentTeamIndex >= teams.length) {
-          currentTeamIndex = teams.length - 1;
-          reverse = true;
-          round++;
-        }
-      } else {
-        currentTeamIndex--;
-        if (currentTeamIndex < 0) {
-          currentTeamIndex = 0;
-          reverse = false;
-          round++;
-        }
-      }
-
-      if (round > totalRounds) {
-        endDraft();
-        return;
-      }
-
-      document.getElementById("currentTeam").textContent = teams[currentTeamIndex];
-      document.getElementById("roundNum").textContent = round;
-    }
-
-    function updateDraftBoard() {
-      const board = document.getElementById("draftBoard");
-      board.innerHTML = "";
-      teams.forEach(t => {
-        const li = document.createElement("li");
-        li.textContent = `${t}: ${draftPicks[t].join(", ")}`;
-        board.appendChild(li);
-      });
-    }
-
-    function undoLastPick() {
-      const team = teams[currentTeamIndex];
-      const last = draftPicks[team].pop();
-      if (last) drafted.delete(last);
-      updateDraftBoard();
-      renderPlayers();
-    }
-
-    async function endDraft() {
-  const statsAPI = "https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/playerStats";
-
-  try {
-    const res = await fetch(statsAPI);
-    const data = await res.json();
-    const playerStats = data.playerStats || [];
-    window.latestStats = playerStats;
-
-    const teamTotals = [];
-
-    teams.forEach(team => {
-      const picks = draftPicks[team];
-      let totalPoints = 0;
-
-      picks.forEach(name => {
-        const stat = playerStats.find(p => p.player === name);
-        if (stat && stat.points !== undefined) {
-          totalPoints += Math.round(Number(stat.points));
-        } else {
-          console.warn("⚠️ No stat found for:", name);
-        }
-      });
-
-      teamTotals.push({ team, totalPoints, picks });
-    });
-
-    const leagueName = document.getElementById("leagueName").value.trim();
-    const saved = await saveLeagueToSheety(leagueName, teams, draftPicks);
-    if (!saved) {
-      alert("Failed to save your league. Please try again.");
-      return;
-    }
-
-    teamTotals.sort((a, b) => b.totalPoints - a.totalPoints);
-    showLeaderboard(teamTotals);
-
-  } catch (err) {
-    alert("Failed to load stats.");
-    console.error("Stats error:", err);
-  }
+function updateDraftBoard() {
+  const board = document.getElementById("draftBoard");
+  board.innerHTML = `<li>${draftPicks.join(", ")}</li>`;
 }
 
-   async function viewSavedLeaderboard() {
-  const leagueName = document.getElementById("leagueName").value.trim();
-  if (!leagueName) {
-    alert("Please enter a league name.");
+async function endDraft() {
+  if (submissionInProgress) {
+    console.warn("⚠️ Draft already submitting... duplicate click ignored.");
     return;
   }
 
+  submissionInProgress = true;
+
   try {
-    const res = await fetch("https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/leagues");
+    const statsAPI = "https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/playerStats";
+    const res = await fetch(statsAPI);
     const data = await res.json();
-    const allLeagues = data.leagues || [];
-    const match = allLeagues.find(l => l.leagueName.toLowerCase() === leagueName.toLowerCase());
+    const stats = data.playerStats || [];
 
-    if (!match) {
-      alert("League not found.");
-      return;
-    }
+    const leaderboard = document.getElementById("leaderboardList");
+    leaderboard.innerHTML = "";
 
-    const teams = JSON.parse(match.teams);
-    const draftPicks = JSON.parse(match.draftPicks);
+    let total = 0;
+    draftPicks.forEach(name => {
+      const stat = stats.find(p => p.player === name);
+      const pts = stat ? Math.round(Number(stat.points)) : 0;
+      const eliminated = stat?.eliminated?.toLowerCase() === "yes";
+      const teamAbbr = stat?.team?.toUpperCase();
+      const logo = teamLogos[teamAbbr];
 
-    const statsRes = await fetch("https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/playerStats");
-    const statsData = await statsRes.json();
-    const playerStats = statsData.playerStats || [];
-    window.latestStats = playerStats;
-
-    const teamTotals = [];
-
-    teams.forEach(team => {
-      const picks = draftPicks[team];
-      let totalPoints = 0;
-
-      picks.forEach(name => {
-        const stat = playerStats.find(p => p.player === name);
-        if (stat && stat.points !== undefined) {
-          totalPoints += Math.round(Number(stat.points));
-        } else {
-          console.warn("⚠️ No stat found for:", name);
-        }
-      });
-
-      teamTotals.push({ team, totalPoints, picks });
+      const li = document.createElement("li");
+      li.innerHTML = `
+        ${logo ? `<img src="${logo}" style="height:16px;margin-right:6px;">` : ""}
+        ${eliminated ? "❌ " : ""}${name} - ${pts} pts
+      `;
+      if (eliminated) {
+        li.style.opacity = "0.6";
+        li.style.fontStyle = "italic";
+      }
+      leaderboard.appendChild(li);
+      total += pts;
     });
 
-    teamTotals.sort((a, b) => b.totalPoints - a.totalPoints);
-    showLeaderboard(teamTotals);
+    const header = document.createElement("li");
+    header.innerHTML = `<strong>🏁 Total Points: ${total}</strong>`;
+    header.style.marginBottom = "10px";
+    leaderboard.insertBefore(header, leaderboard.firstChild);
+
+    document.getElementById("draftUI").classList.remove("visible");
+    document.getElementById("leaderboardScreen").classList.add("visible");
+
+    const payload = {
+      league: {
+        leagueName: window.currentUser,
+        email: window.currentEmail,
+        draftPicks: JSON.stringify(draftPicks)
+      }
+    };
+
+    console.log("📤 Sending payload:", payload);
+
+    const postRes = await fetch("https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/leagues", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await postRes.json();
+    console.log("📥 Sheety response:", result);
+
+    if (!postRes.ok) {
+      alert("⚠️ Failed to save your draft. See console for details.");
+      submissionInProgress = false;
+    }
 
   } catch (err) {
-    alert("Failed to load leaderboard.");
-    console.error("Leaderboard error:", err);
+    alert("❌ Error fetching stats or saving draft.");
+    console.error("💥 Error in endDraft():", err);
+    submissionInProgress = false;
   }
 }
 
-  function showLeaderboard(teamTotals) {
-  document.getElementById("draftUI").classList.remove("visible");
-  document.getElementById("homeScreen").classList.remove("visible");
-  document.getElementById("leaderboardScreen").classList.add("visible");
 
-  const list = document.getElementById("leaderboardList");
-  list.innerHTML = "";
+async function loadLiveLeaderboard() {
+  const leagueAPI = "https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/leagues";
+  const statsAPI = "https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/playerStats";
 
-  teamTotals.forEach((entry, index) => {
-    const medal = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "";
-    const li = document.createElement("li");
-    li.style.flexDirection = "column";
-    li.style.alignItems = "flex-start";
+  try {
+    const [leagueRes, statsRes] = await Promise.all([
+      fetch(leagueAPI),
+      fetch(statsAPI)
+    ]);
 
-    const header = document.createElement("div");
-    header.style.display = "flex";
-    header.style.justifyContent = "space-between";
-    header.style.alignItems = "center";
-    header.style.width = "100%";
+    const leagueData = await leagueRes.json();
+    const statsData = await statsRes.json();
 
-    const label = document.createElement("strong");
-    label.textContent = `${medal} ${entry.team} — ${entry.totalPoints} pts`;
+    const entries = leagueData.leagues || [];
+    const playerStats = statsData.playerStats || [];
 
-    const toggleBtn = document.createElement("button");
-    toggleBtn.textContent = "View Players";
-    toggleBtn.style.width = "100px";
-    toggleBtn.style.padding = "6px 10px";
-    toggleBtn.style.background = "#2980b9";
-    toggleBtn.style.color = "#fff";
-    toggleBtn.style.border = "none";
-    toggleBtn.style.borderRadius = "5px";
-    toggleBtn.style.cursor = "pointer";
-    toggleBtn.style.fontSize = "0.9rem";
+    const leaderboard = [];
 
-    header.appendChild(label);
-    header.appendChild(toggleBtn);
-    li.appendChild(header);
+    entries.forEach(entry => {
+      const user = entry.leagueName;
+      const picks = JSON.parse(entry.draftPicks);
+      let totalPoints = 0;
 
-    const playerList = document.createElement("ul");
-    playerList.style.marginTop = "8px";
-    playerList.style.display = "none";
+      const fullRoster = picks.map(name => {
+        const stat = playerStats.find(p => p.player === name);
+        const points = stat?.points ? Math.round(Number(stat.points)) : 0;
+        const eliminated = stat?.eliminated?.toLowerCase() === "yes";
+        const teamAbbr = stat?.team?.toUpperCase();
+        return {
+          name,
+          points,
+          eliminated,
+          teamAbbr
+        };
+      });
 
-    entry.picks.forEach(player => {
-      const stat = window.latestStats?.find(p => p.player === player);
-      const pts = stat ? Math.round(stat.points) : 0;
-      const eliminated = stat?.eliminated?.toLowerCase() === "yes";
+      fullRoster.forEach(p => totalPoints += p.points);
 
-      const teamAbbr = stat?.team?.toUpperCase();
-      const teamLogo = teamLogos[teamAbbr];
-
-      const detail = document.createElement("li");
-      detail.innerHTML = `
-        ${teamLogo ? `<img src="${teamLogo}" alt="${teamAbbr}" style="height:16px;vertical-align:middle;margin-right:6px;">` : ""}
-        ${eliminated ? "❌ " : ""}${player} - ${pts} pts
-      `;
-      detail.style.marginLeft = "16px";
-      detail.style.fontSize = "0.95rem";
-      if (eliminated) {
-        detail.style.opacity = "0.6";
-        detail.style.fontStyle = "italic";
-      }
-      playerList.appendChild(detail);
+      leaderboard.push({ user, totalPoints, fullRoster });
     });
 
-    toggleBtn.onclick = () => {
-      const visible = playerList.style.display === "block";
-      playerList.style.display = visible ? "none" : "block";
-      toggleBtn.textContent = visible ? "View Players" : "Hide Players";
-    };
+    leaderboard.sort((a, b) => b.totalPoints - a.totalPoints);
 
-    li.appendChild(playerList);
-    list.appendChild(li);
-  });
+    const list = document.getElementById("liveLeaderboardList");
+    list.innerHTML = "";
+
+    leaderboard.forEach((entry, index) => {
+      const medal = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "";
+      const li = document.createElement("li");
+      li.style.flexDirection = "column";
+      li.style.alignItems = "flex-start";
+
+      const header = document.createElement("div");
+      header.style.display = "flex";
+      header.style.justifyContent = "space-between";
+      header.style.alignItems = "center";
+      header.style.width = "100%";
+
+      const label = document.createElement("strong");
+      label.textContent = `${medal} ${entry.user} — ${entry.totalPoints} pts`;
+
+      const toggleBtn = document.createElement("button");
+      toggleBtn.textContent = "View Players";
+      toggleBtn.style.width = "100px";
+      toggleBtn.style.padding = "6px 10px";
+      toggleBtn.style.background = "#2980b9";
+      toggleBtn.style.color = "#fff";
+      toggleBtn.style.border = "none";
+      toggleBtn.style.borderRadius = "5px";
+      toggleBtn.style.cursor = "pointer";
+      toggleBtn.style.fontSize = "0.9rem";
+
+      header.appendChild(label);
+      header.appendChild(toggleBtn);
+      li.appendChild(header);
+
+      const playerList = document.createElement("ul");
+      playerList.style.marginTop = "8px";
+      playerList.style.display = "none";
+
+      entry.fullRoster.forEach(player => {
+        const detail = document.createElement("li");
+
+        const logo = teamLogos[player.teamAbbr];
+        detail.innerHTML = `
+          ${logo ? `<img src="${logo}" style="height:16px;margin-right:6px;">` : ""}
+          ${player.eliminated ? "❌ " : ""}${player.name} - ${player.points} pts
+        `;
+
+        if (player.eliminated) {
+          detail.style.opacity = "0.6";
+          detail.style.fontStyle = "italic";
+        }
+
+        detail.style.marginLeft = "16px";
+        detail.style.fontSize = "0.95rem";
+        playerList.appendChild(detail);
+      });
+
+      toggleBtn.onclick = () => {
+        const visible = playerList.style.display === "block";
+        playerList.style.display = visible ? "none" : "block";
+        toggleBtn.textContent = visible ? "View Players" : "Hide Players";
+      };
+
+      li.appendChild(playerList);
+      list.appendChild(li);
+    });
+
+  } catch (err) {
+    console.error("❌ Error loading live leaderboard:", err);
+    alert("Failed to load live leaderboard.");
+  }
 }
 
+window.addEventListener("DOMContentLoaded", () => {
+  loadLiveLeaderboard();
+});
 
-function getMostCommonTeam(players) {
-  const freq = {};
-  players.forEach(player => {
-    const stat = window.latestStats.find(p => p.player === player);
-    const abbr = stat?.team?.toUpperCase();
-    if (abbr) {
-      freq[abbr] = (freq[abbr] || 0) + 1;
-    }
-  });
-  const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
-  return sorted[0]?.[0]; // Return most common team abbreviation
-}
 
 
   </script>
-
 </body>
 </html>
-
