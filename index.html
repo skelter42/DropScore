@@ -811,30 +811,33 @@ function loadMyEntries() {
           toggleBtn.textContent = visible ? "View Players" : "Hide Players";
         };
 
-        // 🗑️ Delete Button (Compact)
-        const deleteBtn = document.createElement("button");
-        deleteBtn.textContent = "🗑️";
-        deleteBtn.title = "Delete Entry";
-        deleteBtn.style.marginLeft = "6px";
-        deleteBtn.style.padding = "4px 6px";
-        deleteBtn.style.fontSize = "0.8rem";
-        deleteBtn.style.background = "#c0392b";
-        deleteBtn.style.color = "#fff";
-        deleteBtn.style.border = "none";
-        deleteBtn.style.borderRadius = "4px";
-        deleteBtn.style.cursor = "pointer";
-
-        deleteBtn.onclick = () => {
-          if (confirm("Are you sure you want to delete this entry?")) {
-            deleteUserEntry(entry.id);
-          }
-        };
-
         const rightButtons = document.createElement("div");
         rightButtons.style.display = "flex";
         rightButtons.style.gap = "6px";
         rightButtons.appendChild(toggleBtn);
-        rightButtons.appendChild(deleteBtn);
+
+        // ✅ Only allow delete if user owns the entry
+        if (entry.email === window.currentEmail) {
+          const deleteBtn = document.createElement("button");
+          deleteBtn.textContent = "🗑️";
+          deleteBtn.title = "Delete Entry";
+          deleteBtn.style.marginLeft = "6px";
+          deleteBtn.style.padding = "4px 6px";
+          deleteBtn.style.fontSize = "0.8rem";
+          deleteBtn.style.background = "#c0392b";
+          deleteBtn.style.color = "#fff";
+          deleteBtn.style.border = "none";
+          deleteBtn.style.borderRadius = "4px";
+          deleteBtn.style.cursor = "pointer";
+
+          deleteBtn.onclick = () => {
+            if (confirm("Are you sure you want to delete this entry?")) {
+              deleteUserEntry(entry.id);
+            }
+          };
+
+          rightButtons.appendChild(deleteBtn);
+        }
 
         header.appendChild(label);
         header.appendChild(rightButtons);
@@ -868,6 +871,7 @@ function loadMyEntries() {
       alert("Failed to load your entries.");
     });
 }
+
 
 function deleteUserEntry(entryId) {
   if (!entryId || typeof entryId !== "number") {
