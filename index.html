@@ -106,8 +106,9 @@
     <input type="email" id="emailInput" placeholder="Email" />
     <input type="password" id="passwordInput" placeholder="Password" />
   
-    <button onclick="registerUser()">Register</button>
-    <button onclick="loginUser()">Login</button>
+ <button onclick="registerUser()">Register</button>
+<button onclick="loginUser()">Login</button>
+<button onclick="continueAsGuest()" style="background:#7f8c8d;">👤 Continue as Guest</button>
   </div>
 </div>
 
@@ -369,6 +370,7 @@ function draftPlayer(name) {
   draftPicks.push(name);
   drafted.add(name);
   updateDraftBoard();
+  
   renderPlayers();
 
   if (draftPicks.length >= 10) endDraft();
@@ -385,15 +387,19 @@ async function endDraft() {
     return;
   }
 
+  // ❌ Block guest submissions
+  if (window.currentEmail?.includes('@guest.local')) {
+    alert("👤 Guest users can't submit drafts. Please log in or register to save your entry.");
+    return;
+  }
+
   submissionInProgress = true;
 
   try {
-    // Capture group code from draft input
     const groupInput = document.getElementById("groupCodeDraft");
     window.currentGroup = groupInput ? groupInput.value.trim() : "";
     const userGroup = window.currentGroup || "public";
 
-    // Fetch existing entries to calculate user entry count
     const leagueRes = await fetch("https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/leagues");
     const leagueData = await leagueRes.json();
     const existingEntries = leagueData.leagues || [];
@@ -409,7 +415,6 @@ async function endDraft() {
       label = `${userBase} (${matchingEntries.length + 1})`;
     }
 
-    // Fetch player stats
     const res = await fetch(statsAPI);
     const data = await res.json();
     const stats = data.playerStats || [];
@@ -446,7 +451,6 @@ async function endDraft() {
     document.getElementById("draftUI").classList.remove("visible");
     document.getElementById("leaderboardScreen").classList.add("visible");
 
-    // Prepare payload with incremented label
     const payload = {
       league: {
         leagueName: label,
@@ -456,8 +460,6 @@ async function endDraft() {
       }
     };
 
-    console.log("📤 Sending payload:", payload);
-
     const postRes = await fetch("https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/leagues", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -465,8 +467,6 @@ async function endDraft() {
     });
 
     const result = await postRes.json();
-    console.log("📥 Sheety response:", result);
-
     if (!postRes.ok) {
       alert("⚠️ Failed to save your draft. See console for details.");
     }
@@ -909,8 +909,19 @@ function deleteUserEntry(entryId) {
       alert("Failed to delete entry. Check the console for details.");
     });
 }
+function continueAsGuest() {
+  const randomSuffix = Math.floor(Math.random() * 10000);
+  const guestName = `Guest${randomSuffix}`;
 
+  window.currentUser = guestName;
+  window.currentEmail = `${guestName}@guest.local`; // used for display & optional draft saving
 
+  document.getElementById("loginForm").style.display = "none";
+  document.getElementById("loginScreen").classList.remove("visible");
+  document.getElementById("usernameDisplay").textContent = window.currentUser;
+
+  showScreen("mainMenu");
+}
 
     
 function goToMyEntries() {
