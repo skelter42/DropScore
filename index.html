@@ -667,9 +667,32 @@ function loginUser() {
 }
 
 function showScreen(id) {
+  // Hide all screens
   document.querySelectorAll(".screen").forEach(screen => screen.classList.remove("visible"));
-  document.getElementById(id).classList.add("visible");
+
+  // Show the target screen
+  const target = document.getElementById(id);
+  target.classList.add("visible");
+
+  // ✅ Lazy-load AdSense only for content-rich screens
+  const adSafeScreens = [
+    "mainMenu",
+    "draftUI",
+    "liveLeaderboardScreen",
+    "contestScreen",
+    "myEntriesScreen",
+    "leaderboardScreen"
+  ];
+
+  if (adSafeScreens.includes(id)) {
+    try {
+      (adsbygoogle = window.adsbygoogle || []).push({});
+    } catch (e) {
+      console.warn("🛑 Lazy AdSense push failed:", e);
+    }
+  }
 }
+
 
 function goToDraft() {
   showScreen("draftUI");
