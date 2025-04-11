@@ -295,14 +295,8 @@ function renderPlayers() {
 
   const filtered = players.filter(p => {
     const name = p.player.toLowerCase();
-    const teamAbbr = p.team.toLowerCase();
-    const teamFull = (teamNames[p.team.toUpperCase()] || "").toLowerCase();
-
-    return !drafted.has(p.player) && (
-      name.includes(search) ||
-      teamAbbr.includes(search) ||
-      teamFull.includes(search)
-    );
+    const team = p.team.toLowerCase();
+    return !drafted.has(p.player) && (name.includes(search) || team.includes(search));
   });
 
   filtered.forEach(p => {
@@ -310,10 +304,13 @@ function renderPlayers() {
 
     const wrapper = document.createElement("div");
     wrapper.style.display = "flex";
-    wrapper.style.justifyContent = "space-between";
     wrapper.style.alignItems = "center";
+    wrapper.style.justifyContent = "space-between";
+    wrapper.style.width = "100%";
 
     const infoDiv = document.createElement("div");
+    infoDiv.style.flexGrow = "1";
+
     const logo = teamLogos[p.team.toUpperCase()];
     infoDiv.innerHTML = logo
       ? `<img src="${logo}" style="height:20px;vertical-align:middle;margin-right:6px;"> ${p.player} (${p.team})`
@@ -322,6 +319,8 @@ function renderPlayers() {
     const btn = document.createElement("button");
     btn.textContent = "Draft";
     btn.style.width = "80px";
+    btn.style.marginLeft = "12px";
+    btn.style.flexShrink = "0";
     btn.onclick = () => draftPlayer(p.player);
 
     wrapper.appendChild(infoDiv);
