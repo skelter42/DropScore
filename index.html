@@ -870,19 +870,43 @@ function loadMyEntries() {
 }
 
 function deleteUserEntry(entryId) {
-  const url = `https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/leagues/${entryId}`;
+  if (!entryId || typeof entryId !== "number") {
+    console.error("❌ Invalid entry ID:", entryId);
+    alert("Cannot delete this entry. Invalid ID.");
+    return;
+  }
 
-  fetch(url, { method: "DELETE" })
-    .then(res => {
-      if (!res.ok) throw new Error("Failed to delete");
-      alert("✅ Entry deleted.");
-      loadMyEntries(); // Refresh list
+  const url = `https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/leagues/${entryId}`;
+  console.log("🗑️ Attempting to delete entry with ID:", entryId);
+
+  fetch(url, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json"
+    }
+  })
+    .then(async res => {
+      const responseText = await res.text();
+      console.log("🧾 DELETE response text:", responseText);
+
+      if (!res.ok) {
+        throw new Error(`Delete failed. Status: ${res.status}, Body: ${responseText}`);
+      }
+
+      alert("✅ Entry deleted successfully.");
+
+      // ✅ Add a small delay before reload to ensure API updates propagate
+      setTimeout(() => {
+        loadMyEntries(); // Force reload fresh from API
+      }, 500);
     })
     .catch(err => {
-      console.error("❌ Delete error:", err);
-      alert("Failed to delete entry.");
+      console.error("❌ Error while deleting entry:", err);
+      alert("Failed to delete entry. Check the console for details.");
     });
 }
+
+
 
     
 function goToMyEntries() {
