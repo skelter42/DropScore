@@ -1,10 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Google Ads (your existing script) -->
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5319541186981982"
-     crossorigin="anonymous"></script>
+    crossorigin="anonymous"></script>
+
   <meta charset="UTF-8" />
   <title>DropScore Draft</title>
+
+
+
+  <!-- ✅ Styles -->
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -48,26 +54,116 @@
       justify-content: space-between;
       align-items: center;
     }
+  /* Back Button for Leaderboard */
+  #backBtnLeaderboard,
+  #backBtnDraft,
+  #backBtnContest {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    padding: 4px 8px;
+    font-size: 1rem;
+    background: #2c3e50;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10;
+    width: 32px;
+    height: 32px;
+    line-height: 24px;
+    text-align: center;
+  }
+
   </style>
 </head>
+
 <body>
 
   
-<div id="homeScreen" class="screen visible">
-  <h1>🏀 DropScore Draft</h1>
-  <input type="text" id="usernameInput" placeholder="Enter your name" />
-  <input type="email" id="emailInput" placeholder="Enter your email" />
-  <button onclick="startDraft()">Start Draft</button>
+<!-- Standalone Login Screen -->
+<div id="loginScreen" class="screen visible">
+  <h1>🏀 DropScore Login</h1>
+  <div id="loginForm">
+    <input type="text" id="usernameInput" placeholder="Username (for registration)" />
+    <input type="email" id="emailInput" placeholder="Email" />
+    <input type="password" id="passwordInput" placeholder="Password" />
+  
+    <button onclick="registerUser()">Register</button>
+    <button onclick="loginUser()">Login</button>
+  </div>
+</div>
 
+<div id="mainMenu" class="screen">
+  <h2>👋 Welcome, <span id="usernameDisplay"></span>!</h2>
+  <button onclick="goToDraft()">🏀 Start Draft</button>
+  <button onclick="goToLeaderboard()">📊 View Leaderboard</button>
+  <button onclick="goToContestDetails()">📝 Contest Details</button>
+  <button onclick="logoutUser()" style="background:#c0392b;">🚪 Log Out</button>
+</div>
+  
+  
+<div id="contestScreen" class="screen">
+  <button onclick="backToHome()" id="backBtnContest">←</button>
+  <h2>📝 Contest Details</h2>
+<p>
+  <strong>DropScore</strong> brings <em>Survivor</em> to fantasy. Simply draft <strong>10 players</strong> from any team and you earn however many fantasy points they accrue throughout the playoffs.
+</p>
+<p>
+  You can play it safe with stars or go bold — if you think a play-in team is going to make a run, make sure to include a player or two!
+  But beware: once your player is eliminated, they <strong>stop scoring points</strong> for your team.
+</p>
+  You can submit as many enteries as you want!
+
+<h3>📊 Scoring System</h3>
+<ul>
+  <li>Points: <strong>1</strong></li>
+  <li>Assists: <strong>1.5</strong></li>
+  <li>Rebounds: <strong>1.25</strong></li>
+  <li>Blocks: <strong>2</strong></li>
+  <li>Steals: <strong>2</strong></li>
+  <li>Turnovers: <strong>-0.5</strong></li>
+</ul>
+</div>
+
+
+
+<div id="liveLeaderboardScreen" class="screen">
+  <button onclick="backToHome()" id="backBtnLeaderboard">←</button>
   <h2>📊 Live Leaderboard</h2>
+
+
+  <!-- 🔍 Group code input + switch -->
+  <input type="text" id="groupCodeViewInput" placeholder="Enter group code (or leave blank for public)" />
+  <button onclick="loadLeaderboardByGroup()" style="margin-top: 6px;">🔄 View Group</button>
+  <p id="currentGroupLabel" style="font-size: 0.9rem; margin-top: 6px; font-style: italic; color: #ccc;">
+    Showing: <strong>public</strong>
+  </p>
+
   <ul id="liveLeaderboardList"></ul>
 </div>
 
 
-  <div id="draftUI" class="screen">
-    <h2>Pick your top 10 players</h2>
+
+
+ <div id="draftUI" class="screen">
+  <button onclick="backToHome()" id="backBtnDraft">←</button>
+  <h2>Pick your top 10 players</h2>
     <h3>Your Picks</h3>
     <ul id="draftBoard"></ul>
+   <label for="groupCodeDraft" style="margin-top: 10px; display: block;">Optional Group Code:</label>
+<input type="text" id="groupCodeDraft" placeholder="Leave blank to enter public group" oninput="updateGroupLabel()" />
+
+<p id="groupIndicator" style="font-size: 0.9rem; font-style: italic; margin-top: 4px; color: #ccc;">
+  
+</p>
+
+    
+  <!-- ✅ Undo Draft Pick Button -->
+  <button id="undoButton" onclick="undoLastPick()" style="background-color:#e67e22; color:white; margin-top:10px;">
+    ↩️ Undo Last Pick
+  </button>
+
 
     <input type="text" id="searchInput" placeholder="Search by player or team..." oninput="renderPlayers()" />
     <ul id="playerList">Loading players...</ul>
@@ -76,10 +172,62 @@
   <div id="leaderboardScreen" class="screen">
     <h2>🏆 Your Draft Result</h2>
     <ul id="leaderboardList"></ul>
-    <button onclick="location.reload()">🔄 Draft Again</button>
+<button onclick="location.reload()">🏠 Return to Menu</button>
   </div>
 
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+
+  
   <script>
+    
+    const firebaseConfig = {
+  apiKey: "AIzaSyAtfHUlUynmn86icD6yHcOfjPd4snKHmwY",
+  authDomain: "dropscore-8ad6b.firebaseapp.com",
+  projectId: "dropscore-8ad6b",
+  storageBucket: "dropscore-8ad6b.firebasestorage.app",
+  messagingSenderId: "223006355256",
+  appId: "1:223006355256:web:d500f7b1c0d329d69c1bcd",
+  measurementId: "G-DM5QL9DHS3"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+ const teamNames = {
+  ATL: "Atlanta Hawks",
+  BOS: "Boston Celtics",
+  BKN: "Brooklyn Nets",
+  CHA: "Charlotte Hornets",
+  CHI: "Chicago Bulls",
+  CLE: "Cleveland Cavaliers",
+  DAL: "Dallas Mavericks",
+  DEN: "Denver Nuggets",
+  DET: "Detroit Pistons",
+  GSW: "Golden State Warriors",
+  HOU: "Houston Rockets",
+  IND: "Indiana Pacers",
+  LAC: "LA Clippers",
+  LAL: "Los Angeles Lakers",
+  MEM: "Memphis Grizzlies",
+  MIA: "Miami Heat",
+  MIL: "Milwaukee Bucks",
+  MIN: "Minnesota Timberwolves",
+  NOP: "New Orleans Pelicans",
+  NYK: "New York Knicks",
+  OKC: "Oklahoma City Thunder",
+  ORL: "Orlando Magic",
+  PHI: "Philadelphia 76ers",
+  PHX: "Phoenix Suns",
+  POR: "Portland Trail Blazers",
+  SAC: "Sacramento Kings",
+  SAS: "San Antonio Spurs",
+  TOR: "Toronto Raptors",
+  UTA: "Utah Jazz",
+  WAS: "Washington Wizards"
+};
+ 
+
 const teamLogos = {
   ATL: "https://cdn.nba.com/logos/nba/1610612737/primary/L/logo.svg",
   BOS: "https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg",
@@ -122,30 +270,14 @@ let players = [];
 let submissionInProgress = false;
 
 function startDraft() {
-  const username = document.getElementById("usernameInput").value.trim();
-  const email = document.getElementById("emailInput").value.trim();
-
-  if (!username || !email) {
-    alert("Please enter both your name and email.");
-    return;
-  }
-
-  window.currentUser = username;
-  window.currentEmail = email;
-
-  console.log("✅ Captured:", window.currentUser, window.currentEmail);
-
   drafted = new Set();
   draftPicks = [];
-
-  document.getElementById("homeScreen").classList.remove("visible");
-  document.getElementById("draftUI").classList.add("visible");
 
   fetch(playerAPI)
     .then(res => res.json())
     .then(data => {
       players = data.draftPicks || [];
-      renderPlayers();
+      renderPlayers(); // this draws players into #playerList
     })
     .catch(err => {
       console.error("⚠️ Failed to load players:", err);
@@ -161,8 +293,14 @@ function renderPlayers() {
 
   const filtered = players.filter(p => {
     const name = p.player.toLowerCase();
-    const team = p.team.toLowerCase();
-    return !drafted.has(p.player) && (name.includes(search) || team.includes(search));
+    const teamAbbr = p.team.toLowerCase();
+    const teamFull = (teamNames[p.team.toUpperCase()] || "").toLowerCase();
+
+    return !drafted.has(p.player) && (
+      name.includes(search) ||
+      teamAbbr.includes(search) ||
+      teamFull.includes(search)
+    );
   });
 
   filtered.forEach(p => {
@@ -191,6 +329,7 @@ function renderPlayers() {
   });
 }
 
+
 function draftPlayer(name) {
   draftPicks.push(name);
   drafted.add(name);
@@ -214,7 +353,28 @@ async function endDraft() {
   submissionInProgress = true;
 
   try {
-    const statsAPI = "https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/playerStats";
+    // Capture group code from draft input
+    const groupInput = document.getElementById("groupCodeDraft");
+    window.currentGroup = groupInput ? groupInput.value.trim() : "";
+    const userGroup = window.currentGroup || "public";
+
+    // Fetch existing entries to calculate user entry count
+    const leagueRes = await fetch("https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/leagues");
+    const leagueData = await leagueRes.json();
+    const existingEntries = leagueData.leagues || [];
+
+    const userBase = window.currentUser;
+    const matchingEntries = existingEntries.filter(entry =>
+      (entry.group || "public").toLowerCase() === userGroup.toLowerCase() &&
+      entry.leagueName.toLowerCase().startsWith(userBase.toLowerCase())
+    );
+
+    let label = userBase;
+    if (matchingEntries.length > 0) {
+      label = `${userBase} (${matchingEntries.length + 1})`;
+    }
+
+    // Fetch player stats
     const res = await fetch(statsAPI);
     const data = await res.json();
     const stats = data.playerStats || [];
@@ -225,7 +385,7 @@ async function endDraft() {
     let total = 0;
     draftPicks.forEach(name => {
       const stat = stats.find(p => p.player === name);
-      const pts = stat ? Math.round(Number(stat.points)) : 0;
+      const pts = stat ? parseFloat(stat.points).toFixed(2) : "0.00";
       const eliminated = stat?.eliminated?.toLowerCase() === "yes";
       const teamAbbr = stat?.team?.toUpperCase();
       const logo = teamLogos[teamAbbr];
@@ -240,22 +400,24 @@ async function endDraft() {
         li.style.fontStyle = "italic";
       }
       leaderboard.appendChild(li);
-      total += pts;
+      total += parseFloat(pts);
     });
 
     const header = document.createElement("li");
-    header.innerHTML = `<strong>🏁 Total Points: ${total}</strong>`;
+    header.innerHTML = `<strong>🏁 Total Points: ${total.toFixed(2)}</strong>`;
     header.style.marginBottom = "10px";
     leaderboard.insertBefore(header, leaderboard.firstChild);
 
     document.getElementById("draftUI").classList.remove("visible");
     document.getElementById("leaderboardScreen").classList.add("visible");
 
+    // Prepare payload with incremented label
     const payload = {
       league: {
-        leagueName: window.currentUser,
+        leagueName: label,
         email: window.currentEmail,
-        draftPicks: JSON.stringify(draftPicks)
+        draftPicks: JSON.stringify(draftPicks),
+        group: userGroup
       }
     };
 
@@ -272,15 +434,16 @@ async function endDraft() {
 
     if (!postRes.ok) {
       alert("⚠️ Failed to save your draft. See console for details.");
-      submissionInProgress = false;
     }
 
   } catch (err) {
     alert("❌ Error fetching stats or saving draft.");
     console.error("💥 Error in endDraft():", err);
-    submissionInProgress = false;
   }
+
+  submissionInProgress = false;
 }
+
 
 
 async function loadLiveLeaderboard() {
@@ -296,8 +459,18 @@ async function loadLiveLeaderboard() {
     const leagueData = await leagueRes.json();
     const statsData = await statsRes.json();
 
-    const entries = leagueData.leagues || [];
+    const allEntries = leagueData.leagues || [];
     const playerStats = statsData.playerStats || [];
+
+    // ✅ Show all groups if no filter is applied
+    let entries;
+    if (!window.currentGroup || window.currentGroup.toLowerCase() === "all") {
+      entries = allEntries;
+    } else {
+      entries = allEntries.filter(entry =>
+        (entry.group || "public").toLowerCase() === window.currentGroup.toLowerCase()
+      );
+    }
 
     const leaderboard = [];
 
@@ -308,9 +481,10 @@ async function loadLiveLeaderboard() {
 
       const fullRoster = picks.map(name => {
         const stat = playerStats.find(p => p.player === name);
-        const points = stat?.points ? Math.round(Number(stat.points)) : 0;
+        const points = stat?.points ? parseFloat(stat.points).toFixed(2) : "0.00";
         const eliminated = stat?.eliminated?.toLowerCase() === "yes";
         const teamAbbr = stat?.team?.toUpperCase();
+        totalPoints += parseFloat(points);
         return {
           name,
           points,
@@ -319,9 +493,7 @@ async function loadLiveLeaderboard() {
         };
       });
 
-      fullRoster.forEach(p => totalPoints += p.points);
-
-      leaderboard.push({ user, totalPoints, fullRoster });
+      leaderboard.push({ user, totalPoints: totalPoints.toFixed(2), fullRoster });
     });
 
     leaderboard.sort((a, b) => b.totalPoints - a.totalPoints);
@@ -365,18 +537,15 @@ async function loadLiveLeaderboard() {
 
       entry.fullRoster.forEach(player => {
         const detail = document.createElement("li");
-
         const logo = teamLogos[player.teamAbbr];
         detail.innerHTML = `
           ${logo ? `<img src="${logo}" style="height:16px;margin-right:6px;">` : ""}
           ${player.eliminated ? "❌ " : ""}${player.name} - ${player.points} pts
         `;
-
         if (player.eliminated) {
           detail.style.opacity = "0.6";
           detail.style.fontStyle = "italic";
         }
-
         detail.style.marginLeft = "16px";
         detail.style.fontSize = "0.95rem";
         playerList.appendChild(detail);
@@ -397,6 +566,162 @@ async function loadLiveLeaderboard() {
     alert("Failed to load live leaderboard.");
   }
 }
+
+function registerUser() {
+  const username = document.getElementById("usernameInput").value.trim();
+  const email = document.getElementById("emailInput").value;
+  const password = document.getElementById("passwordInput").value;
+
+  if (!username) {
+    alert("Please enter a username.");
+    return;
+  }
+
+  auth.createUserWithEmailAndPassword(email, password)
+    .then(userCred => {
+      alert("✅ Account created and logged in!");
+      window.currentUser = username;
+      window.currentEmail = email;
+
+      // Hide login and show main menu
+      document.getElementById("loginForm").style.display = "none";
+      document.getElementById("loginScreen").classList.remove("visible");
+
+      document.getElementById("usernameDisplay").textContent = window.currentUser;
+      showScreen("mainMenu");
+    })
+    .catch(err => {
+      console.error("❌ Registration error:", err);
+      alert(err.message);
+    });
+}
+
+function loginUser() {
+  const email = document.getElementById("emailInput").value;
+  const password = document.getElementById("passwordInput").value;
+
+  auth.signInWithEmailAndPassword(email, password)
+    .then(userCred => {
+      alert("✅ Logged in!");
+      window.currentUser = email.split("@")[0]; // fallback if no username stored
+      window.currentEmail = email;
+
+      // Hide login and show main menu
+      document.getElementById("loginForm").style.display = "none";
+      document.getElementById("loginScreen").classList.remove("visible");
+
+      document.getElementById("usernameDisplay").textContent = window.currentUser;
+      showScreen("mainMenu");
+    })
+    .catch(err => {
+      console.error("❌ Login error:", err);
+      alert(err.message);
+    });
+}
+
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(screen => screen.classList.remove("visible"));
+  document.getElementById(id).classList.add("visible");
+}
+
+function goToDraft() {
+  showScreen("draftUI");
+
+  // Give the DOM a moment to render the screen
+  setTimeout(() => {
+    startDraft();
+  }, 50);
+}
+
+
+
+function goToLeaderboard() {
+  // 🔒 Unlocks on April 15, 2025 at 7:00 PM EST (11:00 PM UTC)
+  const unlockTime = new Date("2025-04-15T23:00:00Z");
+  const now = new Date();
+
+  if (now < unlockTime) {
+    alert("⏳ The leaderboard will be available on April 15 at 7:00 PM EST.");
+    return;
+  }
+
+  // ✅ Load leaderboard like normal after unlock
+  showScreen("liveLeaderboardScreen");
+  loadLiveLeaderboard();
+}
+
+
+function goToContestDetails() {
+  showScreen("contestScreen");
+}
+    
+function undoLastPick() {
+  if (draftPicks.length === 0) {
+    alert("No picks to undo!");
+    return;
+  }
+
+  const removed = draftPicks.pop();
+  drafted.delete(removed);
+
+  updateDraftBoard();
+  renderPlayers();
+}
+function logoutUser() {
+  auth.signOut().then(() => {
+    // Clear user info
+    window.currentUser = null;
+    window.currentEmail = null;
+    window.currentGroup = null;
+
+    // Reset screens
+    showScreen("loginScreen");
+    document.getElementById("loginForm").style.display = "block";
+
+    // Clear input fields (optional)
+    document.getElementById("usernameInput").value = "";
+    document.getElementById("emailInput").value = "";
+    document.getElementById("passwordInput").value = "";
+    document.getElementById("groupCodeInput").value = "";
+  }).catch(err => {
+    console.error("❌ Error logging out:", err);
+    alert("Logout failed.");
+  });
+}
+function loadLeaderboardByGroup() {
+  // 1. Read group code from the input field
+  const input = document.getElementById("groupCodeViewInput").value.trim();
+
+  // 2. Update global group reference
+  window.currentGroup = input || "";
+
+  // 3. Update label text
+  const label = document.getElementById("currentGroupLabel");
+  label.innerHTML = `Showing: <strong>${window.currentGroup || "all groups"}</strong>`;
+
+  // 4. Reload leaderboard
+  loadLiveLeaderboard();
+}
+
+
+    
+function backToHome() {
+  showScreen("mainMenu");
+}
+auth.onAuthStateChanged(user => {
+  if (user) {
+    console.log("✅ User already logged in:", user.email);
+    window.currentUser = user.email.split("@")[0];
+    window.currentEmail = user.email;
+
+    document.getElementById("loginForm").style.display = "none";
+    document.getElementById("loginScreen").classList.remove("visible");
+    document.getElementById("usernameDisplay").textContent = window.currentUser;
+    showScreen("mainMenu");
+  }
+});
+
+
 
 window.addEventListener("DOMContentLoaded", () => {
   loadLiveLeaderboard();
