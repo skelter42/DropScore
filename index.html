@@ -1,9 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- ✅ Google AdSense Auto Ads - place this FIRST inside <head> -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5319541186981982"
-    crossorigin="anonymous"></script>
+
 
   <meta charset="UTF-8" />
   <title>DropScore Draft</title>
@@ -208,7 +206,7 @@
 </div>
 
 
- <div id="draftUI" class="screen">
+<div id="draftScreen" class="screen">
   <button onclick="backToHome()" id="backBtnDraft">←</button>
   <h2>Pick your top 10 players</h2>
     <h3>Your Picks</h3>
@@ -335,11 +333,17 @@ function startDraft() {
   drafted = new Set();
   draftPicks = [];
 
+  // Clear UI in case of leftovers
+  const board = document.getElementById("draftBoard");
+  const list = document.getElementById("playerList");
+  if (board) board.innerHTML = "";
+  if (list) list.innerHTML = "Loading players...";
+
   fetch(playerAPI)
     .then(res => res.json())
     .then(data => {
       players = data.draftPicks || [];
-      renderPlayers(); // this draws players into #playerList
+      renderPlayers(); // this will draw players into #playerList
     })
     .catch(err => {
       console.error("⚠️ Failed to load players:", err);
@@ -687,34 +691,27 @@ function showScreen(id) {
   const target = document.getElementById(id);
   target.classList.add("visible");
 
-  // ✅ Lazy-load AdSense only for content-rich screens
+  // ✅ Load AdSense ONLY on these two content-rich pages
   const adSafeScreens = [
-    "mainMenu",
-    "draftUI",
-    "liveLeaderboardScreen",
-    "contestScreen",
-    "myEntriesScreen",
-    "leaderboardScreen"
+    "contestScreen",       // 📝 Contest Details
+    "myEntriesScreen"      // 🙋 My Entries
   ];
 
   if (adSafeScreens.includes(id)) {
-    try {
-      (adsbygoogle = window.adsbygoogle || []).push({});
-    } catch (e) {
-      console.warn("🛑 Lazy AdSense push failed:", e);
-    }
+    loadAdSenseScriptOnce();
+
+    setTimeout(() => {
+      try {
+        (adsbygoogle = window.adsbygoogle || []).push({});
+      } catch (e) {
+        console.warn("🛑 Lazy AdSense push failed:", e);
+      }
+    }, 300);
   }
 }
 
 
-function goToDraft() {
-  showScreen("draftUI");
 
-  // Give the DOM a moment to render the screen
-  setTimeout(() => {
-    startDraft();
-  }, 50);
-}
 
 
 
@@ -980,6 +977,25 @@ function isDraftLocked() {
   const lockDate = new Date("2025-04-15T23:00:00Z"); // Local time 7:00PM
   const now = new Date();
   return now >= lockDate;
+}
+function loadAdSenseScriptOnce() {
+  if (window.adsbygoogleLoaded) return;
+
+  const script = document.createElement('script');
+  script.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5319541186981982";
+  script.async = true;
+  script.crossOrigin = "anonymous";
+  document.head.appendChild(script);
+
+  window.adsbygoogleLoaded = true;
+}
+function goToDraft() {
+  showScreen("draftScreen");
+
+  // Give the screen time to render before loading players
+  setTimeout(() => {
+    startDraft();
+  }, 100);
 }
 
     
