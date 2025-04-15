@@ -115,7 +115,10 @@
   
 <!-- Standalone Login Screen -->
 <div id="loginScreen" class="screen visible">
-  <h1>🏀 DropScore Login</h1>
+<h1 style="text-align: center;">🏆 DropScore: Survivor-Style NBA Playoff Fantasy</h1>
+<p style="font-size: 1rem; max-width: 600px; margin: 10px auto; color: #ccc; text-align: center;">
+  Draft 10 players. Earn points while their teams stay alive. Once they’re eliminated, they stop scoring. Can your roster survive the playoffs?
+</p>
   <div id="loginForm">
     <input type="text" id="usernameInput" placeholder="Username (for registration)" />
     <input type="email" id="emailInput" placeholder="Email" />
@@ -128,7 +131,11 @@
 </div>
 
 <div id="mainMenu" class="screen">
-  <h2>👋 Welcome, <span id="usernameDisplay"></span>!</h2>
+<h2 style="text-align: center;">🏆 DropScore: Survivor-Style NBA Playoff Fantasy</h2>
+<p style="font-size: 1rem; max-width: 600px; margin: 10px auto; color: #ccc; text-align: center;">
+  Draft 10 players. Earn points while their teams stay alive. Once they’re eliminated, they stop scoring. Can your roster survive the playoffs?
+</p>
+<span id="usernameDisplay" style="display: none;"></span>
   <button onclick="goToDraft()">🏀 Enter Lineup</button>
   <button onclick="goToLeaderboard()">📊 View Leaderboard</button>
   <button onclick="goToExposures()">🌍 Global Exposures</button>
@@ -430,10 +437,16 @@ function draftPlayer(name) {
 
   if (draftPicks.length === 10) {
     setTimeout(() => {
-      endDraft(); // ✅ Automatically finish draft
-    }, 300); // small delay for better UX
+      const confirmSubmit = confirm("You've picked 10 players. Submit your picks?");
+      if (confirmSubmit) {
+        endDraft(); // ✅ Proceed with submission
+      } else {
+        alert("You can still make changes before submitting.");
+      }
+    }, 200); // small delay for better UX
   }
 }
+
 
 
 async function endDraft() {
