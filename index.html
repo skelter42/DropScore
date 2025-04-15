@@ -90,7 +90,23 @@
   line-height: 24px;
   text-align: center;
 }
-
+#backBtnExposures {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 4px 8px;
+  font-size: 1rem;
+  background: #2c3e50;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 10;
+  width: 32px;
+  height: 32px;
+  line-height: 24px;
+  text-align: center;
+}
   </style>
 </head>
 
@@ -128,6 +144,7 @@
   </div>
   <button onclick="goToDraft()">🏀 Enter Lineup</button>
   <button onclick="goToLeaderboard()">📊 View Leaderboard</button>
+  <button onclick="goToExposures()">🌍 Global Exposures</button>
   <button onclick="goToContestDetails()">📝 Contest Details</button>
     <button onclick="goToMyEntries()">🙋 My Entries</button>
   <button onclick="logoutUser()" style="background:#c0392b;">🚪 Log Out</button>
@@ -190,6 +207,7 @@
 
 
 
+
   <!-- 🔍 Group code input + switch -->
   <input type="text" id="groupCodeViewInput" placeholder="Enter group code (or leave blank for public)" />
   <button onclick="loadLeaderboardByGroup()" style="margin-top: 6px;">🔄 View Group</button>
@@ -205,7 +223,11 @@
   <h2>🙋 My Draft Entries</h2>
   <ul id="myEntriesList"></ul>
 </div>
-
+<div id="exposuresScreen" class="screen">
+  <button onclick="backToHome()" id="backBtnExposures">←</button>
+  <h2>🌍 Global Exposures</h2>
+  <ul id="exposuresList">Loading exposures...</ul>
+</div>
 
 <div id="draftScreen" class="screen">
   <button onclick="backToHome()" id="backBtnDraft">←</button>
@@ -646,7 +668,36 @@ async function loadLiveLeaderboard() {
     alert("Failed to load live leaderboard.");
   }
 }
+async function calculatePlayerExposures() {
+  const res = await fetch("https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/leagues");
+  const data = await res.json();
+  const entries = data.leagues || [];
 
+  const exposureMap = {};
+  const totalEntries = entries.length;
+
+  entries.forEach(entry => {
+    const picks = JSON.parse(entry.draftPicks);
+    picks.forEach(player => {
+      exposureMap[player] = (exposureMap[player] || 0) + 1;
+    });
+  });
+
+  // Convert to percentages
+  const exposures = Object.entries(exposureMap).map(([player, count]) => {
+    return {
+      player,
+      count,
+      percent: ((count / totalEntries) * 100).toFixed(1) + "%"
+    };
+  });
+
+  exposures.sort((a, b) => b.count - a.count);
+
+  return exposures;
+}
+
+    
 function registerUser() {
   const username = document.getElementById("usernameInput").value.trim();
   const email = document.getElementById("emailInput").value;
@@ -763,6 +814,85 @@ function undoLastPick() {
   updateDraftBoard();
   renderPlayers();
 }
+
+function goToExposures() {
+  // 🔒 Unlocks on April 15, 2025 at 7:00 PM EST (11:00 PM UTC)
+  const unlockTime = new Date("2025-04-15T23:00:00Z");
+  const now = new Date();
+
+  if (now < unlockTime) {
+    alert("⏳ Global exposures will be available on April 15 at 7:00 PM EST.");
+    return;
+  }
+
+  showScreen("exposuresScreen");
+  loadExposures();
+}
+
+
+async function loadExposures() {
+  const leagueRes = await fetch("https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/leagues");
+  const statsRes = await fetch("https://api.sheety.co/8bc8ea9aa07e26b76e867fe4d92cee28/nbaPlayoffData/playerStats");
+
+  const leagueData = await leagueRes.json();
+  const statsData = await statsRes.json();
+
+  const entries = leagueData.leagues || [];
+  const stats = statsData.playerStats || [];
+
+  const exposureMap = {};
+  const totalEntries = entries.length;
+
+  entries.forEach(entry => {
+    const picks = JSON.parse(entry.draftPicks);
+    picks.forEach(player => {
+      exposureMap[player] = (exposureMap[player] || 0) + 1;
+    });
+  });
+
+  const exposures = Object.entries(exposureMap).map(([player, count]) => {
+    const stat = stats.find(p => p.player === player);
+    const eliminated = stat?.eliminated?.toLowerCase() === "yes";
+    const teamAbbr = stat?.team?.toUpperCase();
+    const logo = teamLogos[teamAbbr];
+
+    return {
+      player,
+      count,
+      percent: ((count / totalEntries) * 100).toFixed(1),
+      eliminated,
+      logo
+    };
+  });
+
+  exposures.sort((a, b) => b.count - a.count);
+
+  const list = document.getElementById("exposuresList");
+  list.innerHTML = "";
+
+  exposures.forEach(row => {
+    const li = document.createElement("li");
+    li.style.display = "flex";
+    li.style.justifyContent = "space-between";
+    li.style.alignItems = "center";
+
+    li.innerHTML = `
+      <div style="display: flex; align-items: center;">
+        ${row.logo ? `<img src="${row.logo}" style="height:16px;margin-right:6px;">` : ""}
+        ${row.eliminated ? "❌ " : ""}${row.player}
+      </div>
+      <div style="font-weight: bold;">${row.percent}% (${row.count})</div>
+    `;
+
+    if (row.eliminated) {
+      li.style.opacity = "0.6";
+      li.style.fontStyle = "italic";
+    }
+
+    list.appendChild(li);
+  });
+}
+
 function logoutUser() {
   auth.signOut().then(() => {
     // Clear user info
@@ -1042,10 +1172,6 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 
-
-  </script>
-</body>
-</html>
 
   </script>
 </body>
