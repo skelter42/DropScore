@@ -1140,12 +1140,15 @@ function loadAdSenseScriptOnce() {
   window.adsbygoogleLoaded = true;
 }
 function goToDraft() {
-  drafted = new Set();      // 🧹 Clear old drafted players
-  draftPicks = [];          // 🧹 Clear previous picks
+  if (isDraftLocked()) {
+    alert("🚫 Drafting is locked. Lineups are final.");
+    return;
+  }
 
+  drafted = new Set();
+  draftPicks = [];
   showScreen("draftScreen");
 
-  // Give the screen time to render before loading players
   setTimeout(() => {
     startDraft();
   }, 100);
@@ -1177,6 +1180,9 @@ window.addEventListener("DOMContentLoaded", () => {
 
 
 
+  </script>
+</body>
+</html>
   </script>
 </body>
 </html>
