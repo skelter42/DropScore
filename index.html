@@ -11,6 +11,7 @@
   <!-- ✅ Styles -->
   <style>
     body {
+  
       font-family: Arial, sans-serif;
       background: #0e1a2b;
       color: white;
@@ -332,6 +333,7 @@ let submissionInProgress = false;
 function startDraft() {
   drafted = new Set();
   draftPicks = [];
+  players = []; // ✅ Clear players list
 
   // Clear UI in case of leftovers
   const board = document.getElementById("draftBoard");
@@ -343,7 +345,7 @@ function startDraft() {
     .then(res => res.json())
     .then(data => {
       players = data.draftPicks || [];
-      renderPlayers(); // this will draw players into #playerList
+      renderPlayers(); // ✅ This sets up the buttons
     })
     .catch(err => {
       console.error("⚠️ Failed to load players:", err);
@@ -353,6 +355,7 @@ function startDraft() {
 
 
 function renderPlayers() {
+  console.log("🔁 Rendering players...", players); // ✅ Add this line
   const list = document.getElementById("playerList");
   const search = (document.getElementById("searchInput")?.value || "").toLowerCase();
   list.innerHTML = "";
@@ -385,7 +388,7 @@ function renderPlayers() {
     btn.style.width = "80px";
     btn.style.marginLeft = "12px";
     btn.style.flexShrink = "0";
-    btn.onclick = () => draftPlayer(p.player);
+    btn.onclick = () => draftPlayer(p.player); // ✅ Button click
 
     wrapper.appendChild(infoDiv);
     wrapper.appendChild(btn);
@@ -393,22 +396,34 @@ function renderPlayers() {
     list.appendChild(li);
   });
 }
+function updateDraftBoard() {
+  const board = document.getElementById("draftBoard");
+  board.innerHTML = "";
+
+  for (let i = 0; i < 10; i++) {
+    const li = document.createElement("li");
+    const playerName = draftPicks[i] || "___";
+    li.textContent = `${i + 1}. ${playerName}`;
+    board.appendChild(li);
+  }
+}
 
 
 function draftPlayer(name) {
+  if (draftPicks.length >= 10) return;
+
   draftPicks.push(name);
   drafted.add(name);
   updateDraftBoard();
-  
   renderPlayers();
 
-  if (draftPicks.length >= 10) endDraft();
+  if (draftPicks.length === 10) {
+    setTimeout(() => {
+      endDraft(); // ✅ Automatically finish draft
+    }, 300); // small delay for better UX
+  }
 }
 
-function updateDraftBoard() {
-  const board = document.getElementById("draftBoard");
-  board.innerHTML = `<li>${draftPicks.join(", ")}</li>`;
-}
 
 async function endDraft() {
   if (submissionInProgress) {
@@ -477,9 +492,11 @@ async function endDraft() {
     header.style.marginBottom = "10px";
     leaderboard.insertBefore(header, leaderboard.firstChild);
 
-    document.getElementById("draftUI").classList.remove("visible");
-    document.getElementById("leaderboardScreen").classList.add("visible");
+    // ✅ Show results screen and scroll to top
+    showScreen("leaderboardScreen");
+    window.scrollTo({ top: 0, behavior: "smooth" });
 
+    // ✅ Save entry
     const payload = {
       league: {
         leagueName: label,
@@ -507,7 +524,6 @@ async function endDraft() {
 
   submissionInProgress = false;
 }
-
 
 
 async function loadLiveLeaderboard() {
@@ -990,6 +1006,9 @@ function loadAdSenseScriptOnce() {
   window.adsbygoogleLoaded = true;
 }
 function goToDraft() {
+  drafted = new Set();      // 🧹 Clear old drafted players
+  draftPicks = [];          // 🧹 Clear previous picks
+
   showScreen("draftScreen");
 
   // Give the screen time to render before loading players
@@ -997,6 +1016,7 @@ function goToDraft() {
     startDraft();
   }, 100);
 }
+
 
     
 function backToHome() {
@@ -1022,6 +1042,10 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 
+
+  </script>
+</body>
+</html>
 
   </script>
 </body>
