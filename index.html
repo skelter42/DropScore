@@ -221,6 +221,18 @@
 <div id="exposuresScreen" class="screen">
   <button onclick="backToHome()" id="backBtnExposures">←</button>
   <h2>🌍 Global Exposures</h2>
+  <!-- ✅ Google AdSense: Display on Global Exposures screen -->
+<div style="margin: 12px 0;">
+  <ins class="adsbygoogle"
+       style="display:block"
+       data-ad-client="ca-pub-5319541186981982"
+       data-ad-slot="8095067697"
+       data-ad-format="auto"
+       data-full-width-responsive="true"></ins>
+  <script>
+    (adsbygoogle = window.adsbygoogle || []).push({});
+  </script>
+</div>
   <ul id="exposuresList">Loading exposures...</ul>
 </div>
 
@@ -760,10 +772,12 @@ function showScreen(id) {
   const target = document.getElementById(id);
   target.classList.add("visible");
 
-  // ✅ Load AdSense ONLY on these two content-rich pages
+  // ✅ Load AdSense ONLY on these content-rich pages
   const adSafeScreens = [
-    "contestScreen",       // 📝 Contest Details
-    "myEntriesScreen"      // 🙋 My Entries
+    "contestScreen",        // 📝 Contest Details
+    "myEntriesScreen",      // 🙋 My Entries
+    "exposuresScreen",      // 🌍 Global Exposures
+    "liveLeaderboardScreen" // 📊 Live Leaderboard ✅ NEW
   ];
 
   if (adSafeScreens.includes(id)) {
@@ -778,6 +792,7 @@ function showScreen(id) {
     }, 300);
   }
 }
+
 
 
 
@@ -1183,6 +1198,4 @@ window.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
-  </script>
-</body>
-</html>
+
